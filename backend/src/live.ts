@@ -45,6 +45,7 @@ export async function handleCall(ws: WebSocket, elderId: string) {
 
   let session: Session | undefined;
   let closed = false;
+  let statTimer: NodeJS.Timeout | undefined;
 
   const onMessage = async (msg: LiveServerMessage) => {
     const sc = msg.serverContent;
@@ -86,6 +87,7 @@ export async function handleCall(ws: WebSocket, elderId: string) {
   const finish = async () => {
     if (closed) return;
     closed = true;
+    if (statTimer) clearInterval(statTimer);
     try {
       session?.close();
     } catch {}
@@ -122,10 +124,24 @@ export async function handleCall(ws: WebSocket, elderId: string) {
     return;
   }
 
+  // 長輩按下通話後由小幫手先開口問候（之後全靠語音）
+  session.sendRealtimeInput({ text: `（${elderName}剛按下通話按鈕，請你先親切問候並開始聊天）` });
+
+  // 收音診斷：每秒印出收到的音訊量與峰值
+  let statBytes = 0;
+  let statPeak = 0;
+  statTimer = setInterval(() => {
+    console.log(`[mic] ${statBytes} bytes/s, peak=${(statPeak / 32768).toFixed(3)}`);
+    statBytes = 0;
+    statPeak = 0;
+  }, 1000);
+
   ws.on("message", (data, isBinary) => {
     if (closed) return;
     if (isBinary) {
       const buf = data as Buffer;
+      statBytes += buf.length;
+      for (let i = 0; i + 1 < buf.length; i += 2) statPeak = Math.max(statPeak, Math.abs(buf.readInt16LE(i)));
       session?.sendRealtimeInput({
         audio: { data: buf.toString("base64"), mimeType: "audio/pcm;rate=16000" },
       });

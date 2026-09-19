@@ -1,7 +1,7 @@
 # AI 語音長照 Agent — Demo MVP 定義
 
 > 延伸自 `v1_md`。本文件只定義「Demo 現場要跑得起來的最小範圍」：哪些必做、哪些不做、用什麼做。
-> 呈現形式：**手機 App（Flutter，以 Android 為主）**。Flutter 為單一程式碼，iOS 為選配（需 Mac＋Xcode，本專案不列入必做）。Demo 在電腦上進行：畫面投影到電腦螢幕，方式見 §3.1。
+> 呈現形式：**手機 App（Flutter，以 Android 為主）**。Flutter 為單一程式碼，iOS 為選配（需 Mac＋Xcode，本專案不列入必做）。Demo 全部在電腦上以 **Android 模擬器**進行（不需實體手機），方式見 §3.1。
 
 ## 1. MVP 一句話
 
@@ -35,18 +35,19 @@ Demo 建議**兩個畫面同時展示**：A 是長輩模式（講話），B 是�
 6. 到了晚上報告時間（Demo 用家屬 App 內的按鈕手動觸發模擬 20:00）→ 家屬 Gmail 信箱收到「本日狀況報告」信
 7. 家屬打開 App 家屬模式：看到今日健康時間軸、異常事件、對話摘要
 
-### 3.1 電腦上的 Demo 環境（Android）
+### 3.1 電腦上的 Demo 環境（Android 模擬器）
 
-Demo 在電腦上進行，評審看電腦螢幕。有兩種畫面來源，建議**混合使用**：
+Demo 全程在同一台電腦上進行，評審看電腦螢幕，不使用實體手機：
 
 | 畫面 | 來源 | 做法 |
 |---|---|---|
-| 長輩模式（會發出聲音、收聲音） | **Android 真機**，用 USB 接電腦，以 **scrcpy** 把手機畫面投影到電腦螢幕（加 `--no-audio`，聲音留在手機） | 語音品質與回音行為最接近真實使用；手機戴耳機或放在桌上 |
-| 家屬模式（只看資料） | **Android Studio 模擬器**，直接顯示在電腦上 | 不涉及麥克風，穩定；同時可開電腦上的信箱畫面展示 Gmail 警報與晚報 |
+| 長輩模式（會發出聲音、收聲音） | **Android Studio 模擬器 A** | 在 Extended controls → Microphone 開啟 **Virtual microphone uses host audio input**，使用 Mac 麥克風；**務必戴耳機** |
+| 家屬模式（只看資料） | **Android Studio 模擬器 B**（或同一個模擬器切換身分） | 不涉及麥克風；旁邊並排開信箱畫面，展示 Gmail 警報信與晚報 |
 
-備案：
-- 只有電腦時，長輩模式也可以在 Android 模擬器跑（模擬器使用電腦麥克風與喇叭）。**電腦喇叭加電腦麥克風會嚴重回音**，此時必須戴耳機。
-- 兩個模擬器無法同時開太多，電腦效能不足時，家屬模式改用 Gmail 信件加 Firebase Console 的資料畫面展示。
+注意：
+- 電腦喇叭加電腦麥克風同機會嚴重回音（小幫手的聲音被收回去，自己打斷自己），**一定要戴耳機**，這是純模擬器 Demo 最大的風險。
+- 同時開兩個模擬器吃效能；電腦負荷太重時，家屬模式改用同一個模擬器切換身分，或以 Gmail 信件加 Firebase Console 資料畫面展示。
+- 若之後有實體 Android 手機，可改為真機（長輩模式）＋ scrcpy 投影，屬於加分選項，非必要。
 
 ## 4. 功能範圍
 
@@ -77,7 +78,7 @@ Demo 在電腦上進行，評審看電腦螢幕。有兩種畫面來源，建議
 - 帳號註冊、登入權限、多家庭多長輩
 - 醫療診斷或用藥建議（Agent 僅記錄與通報，不給醫療結論）
 - 台語 ASR 客製訓練、離線模式
-- 上架 Google Play／App Store（Demo 以 Android 模擬器、真機直接安裝或 APK 展示）
+- 上架 Google Play／App Store（Demo 以 Android 模擬器展示，需要時可打包 APK）
 - iOS 版本（Flutter 可延伸，但需 Mac＋Xcode，本次不做）
 - App 背景常駐收音、Agent 主動開口（僅在使用者點開通話時對話）
 - App 內推播（FCM）：緊急與晚報通知先靠 Gmail，FCM 列為未來擴充
@@ -90,11 +91,11 @@ Demo 在電腦上進行，評審看電腦螢幕。有兩種畫面來源，建議
 | 語音對話核心 | **Gemini Live API**，模型 **`gemini-3.8-live`**（Stable） | 單一連線完成 STT + LLM + TTS，低延遲、可打斷；官方定位為低延遲語音 Agent 預設選擇，支援非同步 function calling 與繁體中文。備選：`gemini-3.8-live-extended-thinking`（穩定但延遲較高）。舊版 `gemini-3.1-flash-live-preview` 官方建議升級，不採用。模型 ID 與計價以官方文件為準，開發前用 API key 實測可用 |
 | Agent 邏輯 | System prompt + **Function Calling**（`log_health`、`raise_alert`） | 「悄悄記錄」的關鍵：對話同時觸發工具，不打斷聊天。記錄文字一律繁體中文 |
 | 晚報生成 | Gemini 2.x Flash（文字，結構化輸出 JSON） | 彙整當日資料產生報告：整體狀態、各項指標、異常、對話摘要、明日建議關心重點 |
-| **手機 App（長輩＋家屬）** | **Flutter（Dart）**，**Android 為主**（最低 Android 版本以套件需求為準，建議 Android 8.0／API 26 以上） | 單一程式碼；只需 Android Studio 即可開發，不需 Xcode；模擬器即時預覽；日後可擴充 iOS；UI 元件豐富，適合做大字大按鈕與儀表板 |
+| **手機 App（長輩＋家屬）** | **Flutter（Dart）**，**Android 為主**（最低 Android 版本以套件需求為準，建議 Android 8.0／API 26 以上） | 單一程式碼；只需 Android Studio 即可開發與 Demo（模擬器），不需 Xcode 與實體手機；日後可擴充 iOS；UI 元件豐富，適合做大字大按鈕與儀表板 |
 | App 錄音 | **`record`**（`startStream`，PCM16、16kHz、單聲道，開啟 `echoCancel`、`noiseSuppress`） | 直接取得原始 PCM 串流，剛好符合後端要的上行格式；系統層回音消除降低「自己打斷自己」 |
-| App 播放語音 | **`flutter_pcm_sound`**（餵 24kHz PCM16）；備案 `flutter_soloud` 或 `flutter_sound` | 專為串流 PCM 播放設計，可在被打斷時立即清空緩衝。套件實際表現需在 POC 階段驗證 |
+| App 播放語音 | **`flutter_pcm_sound`**（餵 24kHz PCM16）；備案 `flutter_soloud` 或 `flutter_sound` | 專為串流 PCM 播放設計。該套件無「清空緩衝」API，被打斷時以 `release()` + 重新 `setup()` 停聲；且其寫死 compileSdk 33，需在 `android/build.gradle.kts` 統一升到 36 才能編譯。實際表現需在 POC 階段驗證 |
 | 音訊工作階段 | **`audio_session`**（Android 語音通訊模式、預設走喇叭；藍牙耳機切換） | 同時錄音與播放的必要設定，否則收不到聲音或音量極小；iOS 延伸時再補 `playAndRecord` |
-| 權限與螢幕 | `permission_handler`（麥克風）、`wakelock_plus`（通話中螢幕不鎖） | 通話時螢幕鎖定會中斷收音 |
+| 權限與螢幕 | 麥克風權限用 `record` 內建的 `hasPermission()`（不用 `permission_handler`，其新版要求 compileSdk 37，超出目前 SDK 36）、`wakelock_plus`（通話中螢幕不鎖） | 通話時螢幕鎖定會中斷收音 |
 | 連線 | `web_socket_channel`（連後端 `wss://…/ws`，斷線自動重連） | 與現有後端協定相同：binary 傳 PCM、文字傳 JSON 事件 |
 | 家屬儀表板資料 | **`cloud_firestore`（FlutterFire）** 直接 `snapshots()` 即時監聽 | 免自己做推送通道，App 端即時更新；資料寫入仍全部由後端負責 |
 | 圖表 | `fl_chart` | 7 天睡眠、心情趨勢（F8） |
@@ -103,7 +104,7 @@ Demo 在電腦上進行，評審看電腦螢幕。有兩種畫面來源，建議
 | 資料庫 | **Firestore** | 即時監聽讓家屬 App 無需輪詢；schemaless 適合黑客松快速迭代 |
 | 通報 | **Gmail 寄信**：Nodemailer + Gmail SMTP（`smtp.gmail.com:465`）＋「應用程式密碼」 | 不用申請任何審核、5 分鐘可通，收件人只需填 email；適合每日一封的晚報。需求：寄件 Gmail 開啟兩步驟驗證後產生 16 碼應用程式密碼（密碼存環境變數／Secret Manager，不進 git）。限制：個人 Gmail 每日約 500 封上限，Demo 綽綽有餘；紅色警報靠信件推播通知，速度略慢於即時通訊軟體。可升級：Gmail API（OAuth）或 Workspace SMTP relay |
 | 排程（P0） | **Cloud Scheduler** → Cloud Run `POST /jobs/daily-report`（每日 20:00，時區 Asia/Taipei） | 觸發晚報；Demo 現場用家屬 App 內按鈕觸發（見下方說明） |
-| 開發／測試輔助 | 後端內建網頁測試頁（`backend/public/index.html`）；**scrcpy**（手機畫面投影到電腦） | 不靠 App 也能驗證後端與 Gemini 語音；scrcpy 讓評審在電腦螢幕看到真機畫面 |
+| 開發／測試輔助 | 後端內建網頁測試頁（`backend/public/index.html`） | 不靠 App 也能驗證後端與 Gemini 語音；App 出問題時可用來展示語音功能 |
 
 **Demo 用「立即產生晚報」按鈕：** App 不能內建排程密鑰（`x-job-secret`）。後端另開一個僅 Demo 啟用的 endpoint（例如 `POST /demo/daily-report`，由環境變數 `DEMO_MODE=1` 開關，正式環境關閉），App 按鈕呼叫它。
 
@@ -111,7 +112,7 @@ Demo 在電腦上進行，評審看電腦螢幕。有兩種畫面來源，建議
 
 ```
  ┌───────────────┐                         ┌───────────────┐
- │ Android 真機    │                         │ Android 模擬器  │
+ │ Android 模擬器 A│                         │ Android 模擬器 B│
  │ 長輩模式        │                         │ 家屬模式        │
  │ 麥克風/喇叭     │                         │ 儀表板/圖表     │
  └───────┬───────┘                         └───────▲───────┘
@@ -136,7 +137,7 @@ Demo 在電腦上進行，評審看電腦螢幕。有兩種畫面來源，建議
 長照/
 ├── backend/              Node.js 後端（已實作）
 │   └── public/           網頁測試頁（開發用）
-├── app/                  Flutter App（待建立）
+├── app/                  Flutter App（已建立骨架、可編譯；家屬端目前為 DemoRepository 假資料，Firestore 待接）
 │   └── lib/
 │       ├── main.dart            進入點、身分選擇（長輩／家屬）
 │       ├── core/                websocket、音訊（錄音/播放）、Firestore 服務、設定
@@ -225,7 +226,7 @@ raise_alert(level, reason, quote)
 
 | 階段 | 工作 | 產出 |
 |---|---|---|
-| 1 | **Flutter 語音 POC**（最高風險，最先做）：錄音串流 → 後端 → Gemini → 語音播放，先在 **Android 真機**驗證回音、音量、延遲 | F1 |
+| 1 | **Flutter 語音 POC**（最高風險，最先做）：錄音串流 → 後端 → Gemini → 語音播放，先在 **Android 模擬器**（戴耳機）驗證回音、音量、延遲 | F1 |
 | 2 | 後端 System prompt 與兩個 function call 寫入 Firestore（後端已有骨架，接上真實 Firestore） | F2、F3、F4 |
 | 3 | Gmail 寄信串接（產生應用程式密碼、寄出測試信；紅色即時通報） | F5b |
 | 4 | 每日晚報：彙整邏輯 + Gemini 產生 + Scheduler + Demo 按鈕 endpoint | F5 |
@@ -239,14 +240,14 @@ raise_alert(level, reason, quote)
 | 風險 | 備案 |
 |---|---|
 | 手機錄音／播放（音訊格式、取樣率）卡關 | 階段 1 最先驗證；備援：用後端網頁測試頁展示語音，App 只展示家屬端 |
-| 回音：小幫手聲音被麥克風收回去，造成自己打斷自己（Android 回音消除品質依手機型號而異） | 開啟 `echoCancel`；在 Demo 用的那支手機上提前實測；建議戴有線／藍牙耳機；若用模擬器，電腦喇叭與麥克風同機必須戴耳機 |
-| Android 音訊工作階段設定錯誤（無聲、音量小、藍牙耳機沒切換） | 使用 `audio_session` 設定語音通訊模式並預設走喇叭；提前在真機測 |
-| 麥克風權限被拒、來電或通知中斷通話 | 首次進入先說明再請求權限；Demo 前手機開勿擾模式；中斷後畫面提示重新開始 |
-| 開發時 App 連不到後端（Android 9 以上預設禁止 `ws://` 明文） | 開發用 ngrok／Cloud Run 的 `wss://`；或在 Android 設定 `usesCleartextTraffic` 暫時例外，正式與 Demo 一律 `wss://`。模擬器連本機後端用 `10.0.2.2`，真機用電腦區網 IP |
+| 回音：小幫手聲音被麥克風收回去，造成自己打斷自己（模擬器用電腦的喇叭與麥克風，同機最容易發生） | 開啟 `echoCancel`；**Demo 一律戴耳機**；提前用同一副耳機實測；備案：降低喇叭音量 |
+| Android 音訊工作階段設定錯誤（無聲、音量小、藍牙耳機沒切換） | 使用 `audio_session` 設定語音通訊模式並預設走喇叭；提前在模擬器實測 |
+| 麥克風權限被拒、通話中斷 | 首次進入先說明再請求權限；Demo 前關閉電腦通知；中斷後畫面提示重新開始 |
+| 開發時 App 連不到後端（Android 9 以上預設禁止 `ws://` 明文） | 開發用 ngrok／Cloud Run 的 `wss://`；或在 Android 設定 `usesCleartextTraffic` 暫時例外，正式與 Demo 一律 `wss://`。模擬器連本機後端用 `10.0.2.2` |
 | Xcode 無法安裝（系統版本），無法做 iOS | 以 Android 為主；iOS 列為選配，由團隊中有可用 Mac 的成員另行驗證 |
-| 模擬器的麥克風與真機行為不同 | 語音最後一定要用 Android 真機驗證；模擬器用於畫面與儀表板 |
-| scrcpy 投影延遲或斷線 | Demo 前先測試 USB 連線與轉接頭；備案：改在模擬器展示，或直接拿手機對著鏡頭展示 |
-| 不同 Android 手機音訊表現不一 | Demo 只用同一支已彩排過的手機，不現場換機 |
+| 模擬器音訊延遲或雜音比真機明顯；麥克風沒有輸入 | 提早在模擬器實測；確認 Extended controls 已開啟 host audio input 且 Mac 已授權模擬器使用麥克風；備援：用後端網頁測試頁展示語音 |
+| 兩個模擬器同時開造成電腦卡頓 | Demo 前關閉其他程式；備案改為單一模擬器切換身分 |
+| 模擬器啟動慢或當機 | Demo 前先開好並保持運作；準備備用錄影 |
 | 現場網路／麥克風不穩 | 預錄一段完整 demo 影片；準備文字輸入模式當備援 |
 | Gemini 中文辨識口音偏差 | 準備 demo 用台詞先行測試；prompt 加入常見詞彙 |
 | Gmail 被擋（應用程式密碼失效／被判定垃圾信） | 提前寄測試信並請收件人加入通訊錄；備案：改用 Gmail API（OAuth）或其他寄件帳號 |
@@ -256,12 +257,30 @@ raise_alert(level, reason, quote)
 
 ## 12. Demo 成功標準
 
-- [ ] App 在 Android 真機（長輩模式）＋電腦畫面（家屬模式）完整跑完一次對話流程，無需手動干預
-- [ ] Demo 用的那支手機已在同樣環境彩排 3 次以上
+- [ ] App 在 Android 模擬器（長輩模式＋家屬模式）完整跑完一次對話流程，無需手動干預
+- [ ] 在 Demo 用的電腦與耳機上完整彩排 3 次以上
 - [ ] 長輩模式：點一下就能通話，Agent 語音清楚、可被打斷、無明顯回音
 - [ ] 家屬模式在對話中即時新增至少 3 筆健康紀錄
-- [ ] 觸發紅色異常後 ≤10 秒家屬手機收到即時通報信
-- [ ] 按下「立即產生晚報」後 ≤15 秒家屬手機收到完整本日報告，內容與當天實際對話一致
+- [ ] 觸發紅色異常後 ≤10 秒家屬信箱收到即時通報信
+- [ ] 按下「立即產生晚報」後 ≤15 秒家屬信箱收到完整本日報告，內容與當天實際對話一致
 - [ ] Cloud Scheduler 已設定每晚 20:00 自動觸發（簡報可展示設定畫面）
 - [ ] 評審能在家屬 App 看到「長期紀錄」（7 天趨勢）
 - [ ] 簡報能對應 v1 的痛點：照護人力缺口 → 一對多 → 社交刺激延緩退化
+
+## 13. 已安裝的開發工具
+
+以下是在開發電腦（macOS）上已下載安裝的工具：
+
+| 工具 | 版本 | 安裝方式 | 用途 |
+|---|---|---|---|
+| Google Cloud CLI（gcloud） | 585.0.0 | `brew install --cask google-cloud-sdk` | 登入 GCP、部署 Cloud Run、設定 Cloud Scheduler |
+| Firebase CLI | 15.30.2 | `npm i -g firebase-tools` | Firestore 專案與規則管理 |
+| Flutter SDK | 3.47.5 | `brew install --cask flutter` | 開發手機 App |
+| Android Studio | 2026.1.4 | 已預先安裝 | Android SDK、Android 模擬器 |
+| Android SDK Command-line Tools、Platform-Tools、Emulator | SDK 36 | 於 Android Studio 的 SDK Manager 安裝 | Flutter 編譯與模擬器執行 |
+
+補充：
+- Node.js 22、Git、Homebrew、Java 17 為既有環境。
+- 不需要 Xcode、CocoaPods（不做 iOS）。
+- `flutter doctor` 通過標準：Flutter 與 Android toolchain 兩項打勾。
+- 尚未安裝：FlutterFire CLI（接 Firebase 時再裝：`dart pub global activate flutterfire_cli`）。

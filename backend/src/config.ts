@@ -12,6 +12,8 @@ export const config = {
   familyEmails: (env.FAMILY_EMAILS ?? "").split(",").map((e) => e.trim()).filter(Boolean),
   jobSecret: env.JOB_SECRET ?? "",
   dashboardUrl: env.DASHBOARD_URL ?? "",
+  /** DEMO_MODE=1：開放免密鑰的 /demo/daily-report（僅 Demo 用，正式環境關閉） */
+  demoMode: env.DEMO_MODE === "1",
   defaultElderId: env.DEFAULT_ELDER_ID ?? "demo",
 };
 
