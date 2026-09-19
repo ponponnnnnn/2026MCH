@@ -292,7 +292,10 @@ class _TrendTab extends ConsumerWidget {
           lineBarsData: [
             LineChartBarData(
               spots: [for (var i = 0; i < pts.length; i++) FlSpot(i.toDouble(), y(pts[i]))],
-              isCurved: true,
+              // 整體狀態是離散的三段燈號，曲線平滑在連續同值後突然變化時會讓線條
+              // 視覺上衝過頭（例如從 normal 掉到 watch 卻在圖上貼近 alert），
+              // 改用直線段忠實呈現；睡眠時數是連續數值，維持原本的平滑曲線。
+              isCurved: leftLabel == null,
               color: color,
               barWidth: 4,
               dotData: const FlDotData(show: true),

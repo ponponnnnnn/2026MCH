@@ -48,10 +48,13 @@ class CallClient {
     onState(CallState.connecting);
     try {
       final session = await AudioSession.instance;
+      // 語音通訊模式（非媒體播放）：讓系統把這段當成通話而非放音樂，
+      // 虛擬麥克風（模擬器 host audio passthrough）與回音消除才會用通話路徑處理，
+      // 而不是媒體路徑；v2_mvp.md 原始規劃就是這個模式，先前寫成 media 是退化。
       await session.configure(AudioSessionConfiguration(
         androidAudioAttributes: const AndroidAudioAttributes(
-          contentType: AndroidAudioContentType.music,
-          usage: AndroidAudioUsage.media,
+          contentType: AndroidAudioContentType.speech,
+          usage: AndroidAudioUsage.voiceCommunication,
         ),
         androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
       ));
@@ -90,6 +93,9 @@ class CallClient {
       echoCancel: true,
       noiseSuppress: true,
       autoGain: true,
+      // 預設 pause 會讓錄音器自己搶音訊焦點，焦點一被搶（播放器重建、通知音）就暫停且不會自動恢復，
+      // 畫面仍顯示聆聽但後端收不到聲音。焦點已由 audio_session 統一管理，這裡不參與。
+      audioInterruption: AudioInterruptionMode.none,
     ));
     _micSub = stream.listen((chunk) {
       _ws?.sink.add(chunk);

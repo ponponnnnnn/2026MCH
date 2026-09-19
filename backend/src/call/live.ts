@@ -128,8 +128,15 @@ export async function handleCall(ws: WebSocket, elderId: string, attemptId?: str
       }
     }
     if (sc?.interrupted) sendJson({ type: "interrupted" });
+    if (msg.goAway) {
+      console.log(`[live] Gemini 即將斷線 timeLeft=${msg.goAway.timeLeft ?? "(未提供)"}`);
+    }
+    if (msg.sessionResumptionUpdate) {
+      console.log(`[live] sessionResumptionUpdate resumable=${msg.sessionResumptionUpdate.resumable}`);
+    }
     if (sc?.inputTranscription?.text) {
       const text = sc.inputTranscription.text;
+      console.log(`[live] 長輩：「${text}」`);
       pushLine("elder", text);
       sendJson({ type: "transcript", role: "elder", text });
       // 這輪長輩開口的第一段文字，記錄起始時間；之後累加字數
@@ -137,10 +144,12 @@ export async function handleCall(ws: WebSocket, elderId: string, attemptId?: str
       elderSpeechCharCount += text.length;
     }
     if (sc?.outputTranscription?.text) {
+      console.log(`[live] 小幫手：「${sc.outputTranscription.text}」`);
       pushLine("agent", sc.outputTranscription.text);
       sendJson({ type: "transcript", role: "agent", text: sc.outputTranscription.text });
     }
     if (sc?.turnComplete) {
+      console.log("[live] turnComplete");
       sendJson({ type: "turnComplete" });
       // F11：一輪對話正常結束就累計輪數；追問發生時 register_clarification 工具會自己累計，
       // 這裡不重複加，避免同一輪被算兩次。
@@ -190,7 +199,10 @@ export async function handleCall(ws: WebSocket, elderId: string, attemptId?: str
           console.error("[live] error", e.message);
           sendJson({ type: "error", message: "語音連線發生錯誤" });
         },
-        onclose: () => void finish(),
+        onclose: (e) => {
+          console.log(`[live] Gemini 連線關閉 code=${e.code} reason=${e.reason || "(無)"}`);
+          void finish();
+        },
       },
     });
   } catch (err) {

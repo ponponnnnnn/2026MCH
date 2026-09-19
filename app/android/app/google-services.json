@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "761010872013",
+    "firebase_url": "https://mch-e65ce-default-rtdb.firebaseio.com",
+    "project_id": "mch-e65ce",
+    "storage_bucket": "mch-e65ce.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:761010872013:android:624915f6609ede21c91384",
+        "android_client_info": {
+          "package_name": "com.meichu.care_helper"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAIwY_k-Gm8MKPs7F9XKOs5Or5CvPlNlb0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
