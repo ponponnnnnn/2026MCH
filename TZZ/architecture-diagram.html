@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>長照 AI 陪伴 — 系統架構</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#F4F2ED;
+    --surface0:#FFFFFF;
+    --surface2:#F3F2EE;
+    --hairline:rgba(0,0,0,0.10);
+    --hairline-strong:rgba(0,0,0,0.20);
+    --text1:#1B1B1A;
+    --text2:#55524C;
+    --text3:#8A867C;
+
+    --blue:#2F5FC7;      --blue-dim:rgba(47,95,199,0.07);
+    --green:#1F8A4C;     --green-dim:rgba(31,138,76,0.07);
+    --orange:#B85C1A;    --orange-dim:rgba(184,92,26,0.07);
+    --gold:#9C7A17;      --gold-dim:rgba(156,122,23,0.09);
+    --red:#A6300E;       --red-dim:rgba(166,48,14,0.07);
+    --teal:#0E7686;      --teal-dim:rgba(14,118,134,0.07);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    padding:40px 20px;
+    background:var(--ground);
+    font-family:'Inter',sans-serif;
+    color:var(--text1);
+    display:flex;
+    justify-content:center;
+  }
+  .card{
+    width:min(1360px,100%);
+    background:var(--surface0);
+    border:1px solid var(--hairline);
+    border-radius:16px;
+    padding:32px 28px 40px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.04);
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.12em;
+    color:var(--text3);
+    text-transform:uppercase;
+    margin:0 0 6px 2px;
+  }
+  h1{
+    font-family:'Inter Tight',sans-serif;
+    font-weight:600;
+    font-size:22px;
+    letter-spacing:-0.01em;
+    margin:0 0 6px 2px;
+    color:var(--text1);
+  }
+  .note{
+    font-size:12.5px;
+    color:var(--text2);
+    margin:0 0 20px 2px;
+    line-height:1.6;
+  }
+  .note b{ color:var(--text1); font-weight:600; }
+
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px 18px;
+    margin:0 0 22px 2px;
+    padding:12px 16px;
+    background:var(--surface2);
+    border:1px solid var(--hairline);
+    border-radius:12px;
+  }
+  .legend-item{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-size:11.5px;
+    color:var(--text2);
+  }
+  .swatch{ width:9px;height:9px;border-radius:3px;flex:none; }
+
+  .diagram-wrap{
+    overflow-x:auto;
+    border:1px solid var(--hairline);
+    border-radius:12px;
+    background:var(--surface0);
+  }
+  svg{ display:block; }
+
+  .box-title{ font-family:'Inter Tight',sans-serif; font-weight:600; font-size:14px; }
+  .box-sub{ font-family:'Inter',sans-serif; font-size:11px; fill:var(--text2); }
+  .mono{ font-family:'JetBrains Mono',monospace; font-size:10.5px; }
+  .tag{ font-family:'JetBrains Mono',monospace; font-size:9.5px; fill:var(--text3); }
+  .group-label{ font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.04em; }
+  .edge-label{ font-family:'Inter',sans-serif; font-size:10.5px; fill:var(--text3); }
+
+  .box{ fill:var(--surface2); stroke-width:1.3; transition:filter 150ms ease-out, stroke-width 150ms ease-out; }
+  .node{ cursor:default; }
+  .node:hover .box{ filter:brightness(0.97) saturate(1.3); stroke-width:2; }
+
+  .edge{ fill:none; transition:opacity 150ms ease-out, stroke-width 150ms ease-out; opacity:0.8; }
+  .edge-active{ opacity:1 !important; stroke-width:2.6 !important; }
+  .edge-dim{ opacity:0.12; }
+</style>
+</head>
+<body>
+<div class="card">
+  <p class="eyebrow">System Architecture · v4 · light</p>
+  <h1>長照 AI 陪伴 — 架構圖</h1>
+  <p class="note">閒聊由<b>「通話排程」</b>主動觸發為主（仿 Age UK / NYSOFA 陪伴專線模式），長輩自己點按鈕降為次要／備援管道。滑過任一個框，會亮出跟它相關的線。「↩讀④」這類小標籤代表讀取關係，沒有另外畫一條橫跨全圖的線，避免線條打架。</p>
+
+  <div class="legend">
+    <div class="legend-item"><span class="swatch" style="background:var(--blue)"></span>規則／背景／通話啟動</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--green)"></span>① 從聊天中問問題（task move）</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--orange)"></span>③ 閒聊找話題（social move）</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--gold)"></span>④ Firestore（中心資料庫）</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--red)"></span>紅色 alert（緊急通報）</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--teal)"></span>② 給家屬看的輸出</div>
+  </div>
+
+  <div class="diagram-wrap">
+  <svg viewBox="0 0 1340 1000" width="1340" height="1000" xmlns="http://www.w3.org/2000/svg">
+
+    <defs>
+      <marker id="a-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2F5FC7"/></marker>
+      <marker id="a-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1F8A4C"/></marker>
+      <marker id="a-gold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9C7A17"/></marker>
+      <marker id="a-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A6300E"/></marker>
+      <marker id="a-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0E7686"/></marker>
+      <marker id="a-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8A867C"/></marker>
+    </defs>
+
+    <!-- ============ COLUMN 1: 通話啟動 (x20-270) ============ -->
+    <g class="node" data-id="callScheduler">
+      <rect class="box" x="20" y="20" width="250" height="100" rx="12" fill="var(--blue-dim)" stroke="var(--blue)"/>
+      <text x="35" y="43" class="box-title" fill="var(--blue)">★ 通話排程（主要）</text>
+      <text x="35" y="63" class="box-sub">讀④：距上次通話多久／</text>
+      <text x="35" y="79" class="box-sub">風險權重／作息時段</text>
+      <text x="35" y="95" class="box-sub">→ 判斷該打了，觸發撥號</text>
+      <text x="35" y="112" class="tag">↩ 讀④ · 仿 Age UK／NYSOFA</text>
+    </g>
+
+    <g class="node" data-id="userTap">
+      <rect class="box" x="20" y="138" width="250" height="80" rx="12" fill="var(--surface0)" stroke="var(--hairline-strong)" stroke-dasharray="4 4"/>
+      <text x="35" y="163" class="box-title">★ 長輩主動點按鈕</text>
+      <text x="35" y="181" class="box-sub">（次要／備援）</text>
+      <text x="35" y="201" class="box-sub">長輩隨時仍可自己開始聊</text>
+    </g>
+
+    <g class="node" data-id="connect">
+      <rect class="box" x="20" y="236" width="250" height="58" rx="12" fill="var(--surface0)" stroke="var(--hairline-strong)"/>
+      <text x="35" y="260" class="box-title">建立語音連線</text>
+      <text x="35" y="278" class="box-sub">App 自動接通／長輩手動點開</text>
+    </g>
+
+    <path class="edge" data-from="callScheduler" data-to="connect" d="M 270,70 L 285,70 L 285,236 L 260,236" stroke="var(--blue)" stroke-width="1.6" marker-end="url(#a-blue)"/>
+    <path class="edge" data-from="userTap" data-to="connect" d="M 145,218 L 145,236" stroke="var(--text3)" stroke-width="1.4" marker-end="url(#a-gray)"/>
+
+    <!-- ============ COLUMN 2: 規則/背景 (x300-540) ============ -->
+    <g class="node" data-id="ruleFile">
+      <rect class="box" x="300" y="20" width="240" height="120" rx="12" fill="var(--blue-dim)" stroke="var(--blue)"/>
+      <text x="313" y="42" class="box-title" fill="var(--blue)">① 靜態規則檔</text>
+      <text x="313" y="60" class="box-sub mono">backend/src/prompt.ts</text>
+      <text x="313" y="78" class="box-sub">語氣§8／開場O1-O8</text>
+      <text x="313" y="94" class="box-sub">話題轉換R1-R15／深淺Tier</text>
+      <text x="313" y="110" class="box-sub">健檢清單定義／面子話偵測</text>
+      <text x="313" y="126" class="box-sub">去羞恥化鋪墊</text>
+    </g>
+
+    <g class="node" data-id="briefing">
+      <rect class="box" x="300" y="156" width="240" height="100" rx="12" fill="var(--surface0)" stroke="var(--blue)" stroke-dasharray="4 4"/>
+      <text x="313" y="178" class="box-title" fill="var(--blue)">Session Briefing</text>
+      <text x="313" y="196" class="box-sub">話題掛勾／槽位狀態／</text>
+      <text x="313" y="212" class="box-sub">上次通話摘要</text>
+      <text x="313" y="230" class="box-sub" fill="var(--text3)">不即時查，latency 考量</text>
+      <text x="313" y="248" class="tag">↩ 通話前讀④一次</text>
+    </g>
+
+    <g class="node" data-id="merge">
+      <rect class="box" x="300" y="272" width="240" height="48" rx="12" fill="var(--surface2)" stroke="var(--hairline-strong)"/>
+      <text x="313" y="295" class="box-title">合併成</text>
+      <text x="313" y="311" class="box-title mono">System Prompt</text>
+    </g>
+
+    <path class="edge" data-from="ruleFile" data-to="merge" d="M 420,140 L 420,272" stroke="var(--blue)" stroke-width="1.6" marker-end="url(#a-blue)"/>
+    <path class="edge" data-from="briefing" data-to="merge" d="M 450,256 L 450,272" stroke="var(--blue)" stroke-width="1.6" marker-end="url(#a-blue)"/>
+
+    <path class="edge" data-from="connect" data-to="geminiGroup" d="M 270,264 L 578,264" stroke="var(--blue)" stroke-width="1.8" marker-end="url(#a-blue)"/>
+    <text x="330" y="256" class="edge-label" fill="var(--blue)">①③ session 開始（誰觸發這通電話）</text>
+
+    <path class="edge" data-from="merge" data-to="geminiGroup" d="M 540,296 L 578,296" stroke="var(--text3)" stroke-width="1.4" marker-end="url(#a-gray)"/>
+    <text x="410" y="332" class="edge-label">system prompt 注入（規則＋背景）</text>
+
+    <!-- ============ Gemini Live outer container (x578-1100, y20-360) ============ -->
+    <g class="node" data-id="geminiGroup">
+      <rect class="box" x="578" y="20" width="522" height="340" rx="16" fill="rgba(0,0,0,0.012)" stroke="var(--hairline-strong)" stroke-dasharray="6 4"/>
+      <text x="596" y="44" class="group-label" fill="var(--text2)">GEMINI LIVE · 一個 session</text>
+
+      <g class="node" data-id="taskMove">
+        <rect class="box" x="608" y="110" width="215" height="210" rx="12" fill="var(--green-dim)" stroke="var(--green)"/>
+        <text x="622" y="137" class="box-title" fill="var(--green)">① 從聊天中問問題</text>
+        <text x="622" y="159" class="box-sub">(task move)</text>
+        <text x="622" y="181" class="box-sub">健康清單驅動：</text>
+        <text x="622" y="199" class="box-sub">用藥／睡眠／飲食</text>
+        <text x="622" y="217" class="box-sub">疼痛／心情</text>
+        <text x="622" y="239" class="box-sub">ICOPE + NIA/AGS 對齊</text>
+        <text x="622" y="261" class="box-sub">R1-R15：何時換題／</text>
+        <text x="622" y="279" class="box-sub">換到哪題／怎麼接話</text>
+      </g>
+
+      <g class="node" data-id="socialMove">
+        <rect class="box" x="855" y="110" width="215" height="210" rx="12" fill="var(--orange-dim)" stroke="var(--orange)"/>
+        <text x="869" y="137" class="box-title" fill="var(--orange)">③ 閒聊找話題聊天</text>
+        <text x="869" y="159" class="box-sub">(social move)</text>
+        <text x="869" y="181" class="box-sub">話題掛勾 topic_hooks</text>
+        <text x="869" y="199" class="box-sub">廣度類別 × 深淺 Tier</text>
+        <text x="869" y="217" class="box-sub">模型（現場生成，</text>
+        <text x="869" y="235" class="box-sub">不用固定題庫）</text>
+        <text x="869" y="257" class="box-sub">R14：零錨點時的</text>
+        <text x="869" y="275" class="box-sub">FORM 分類 fallback</text>
+      </g>
+
+      <path class="edge" data-from="taskMove" data-to="socialMove" d="M 823,212 L 855,212" stroke="var(--text2)" stroke-width="1.8" marker-end="url(#a-gray)" marker-start="url(#a-gray)"/>
+      <text x="800" y="203" class="edge-label" fill="var(--text2)">交錯進行</text>
+    </g>
+
+    <!-- ============ Firestore hub (x560-1080, y430-620) ============ -->
+    <g class="node" data-id="firestore">
+      <rect x="560" y="430" width="520" height="190" rx="16" fill="var(--gold-dim)" stroke="var(--gold)" stroke-width="1.8"/>
+      <text x="820" y="465" text-anchor="middle" class="box-title" fill="var(--gold)" font-size="16">④ Firestore 資料庫（中心）</text>
+      <text x="820" y="495" text-anchor="middle" class="box-sub mono">elders/{elderId}/</text>
+      <text x="820" y="517" text-anchor="middle" class="box-sub mono">healthLogs · alerts · topicHooks/topicState</text>
+      <text x="820" y="539" text-anchor="middle" class="box-sub mono">sessions · dailyReports</text>
+      <text x="820" y="565" text-anchor="middle" class="box-sub" fill="var(--gold)">所有寫入／讀取的唯一真相來源</text>
+    </g>
+
+    <path class="edge" data-from="geminiGroup" data-to="firestore" d="M 820,360 L 820,430" stroke="var(--green)" stroke-width="1.8" marker-end="url(#a-green)"/>
+    <text x="836" y="380" class="edge-label" fill="var(--green)">function calling 寫入：</text>
+    <text x="836" y="396" class="edge-label mono" fill="var(--green)">log_health · raise_alert</text>
+    <text x="836" y="412" class="edge-label mono" fill="var(--green)">flag_uncovered_concern</text>
+    <text x="836" y="428" class="edge-label mono" fill="var(--green)">mark_topic_hook</text>
+
+    <!-- ============ Gmail alert (red) ============ -->
+    <g class="node" data-id="gmailAlert">
+      <rect class="box" x="1150" y="430" width="150" height="95" rx="12" fill="var(--red-dim)" stroke="var(--red)"/>
+      <text x="1165" y="460" class="box-title" fill="var(--red)">Gmail</text>
+      <text x="1165" y="480" class="box-title" fill="var(--red)">緊急通報</text>
+      <text x="1165" y="500" class="box-sub">紅色 alert</text>
+      <text x="1165" y="516" class="box-sub">≤10 秒觸發</text>
+    </g>
+    <path class="edge" data-from="firestore" data-to="gmailAlert" d="M 1080,475 L 1150,475" stroke="var(--red)" stroke-width="1.8" marker-end="url(#a-red)"/>
+    <text x="1085" y="465" class="edge-label mono" fill="var(--red)">raise_alert(red)</text>
+
+    <!-- ============ Scheduler -> report gen ============ -->
+    <g class="node" data-id="scheduler">
+      <rect class="box" x="30" y="700" width="210" height="80" rx="12" fill="var(--surface2)" stroke="var(--hairline-strong)"/>
+      <text x="45" y="730" class="box-title">Cloud Scheduler</text>
+      <text x="45" y="750" class="box-sub">每晚 20:00 觸發（晚報用）</text>
+      <text x="45" y="766" class="box-sub">Demo：App 按鈕</text>
+    </g>
+
+    <g class="node" data-id="reportGen">
+      <rect class="box" x="320" y="700" width="230" height="80" rx="12" fill="var(--surface0)" stroke="var(--gold)"/>
+      <text x="335" y="726" class="box-title" fill="var(--gold)">Gemini 產生晚報</text>
+      <text x="335" y="748" class="box-sub">彙整當日 healthLogs</text>
+      <text x="335" y="766" class="box-sub">＋ alerts ＋對話摘要</text>
+    </g>
+
+    <path class="edge" data-from="scheduler" data-to="reportGen" d="M 240,740 L 320,740" stroke="var(--text3)" stroke-width="1.4" marker-end="url(#a-gray)"/>
+    <text x="248" y="732" class="edge-label">觸發</text>
+
+    <path class="edge" data-from="firestore" data-to="reportGen" d="M 700,620 C 660,655 610,680 550,715" stroke="var(--gold)" stroke-width="1.5" marker-end="url(#a-gold)" marker-start="url(#a-gold)"/>
+    <text x="565" y="670" class="edge-label" fill="var(--gold)">讀彙整資料／</text>
+    <text x="565" y="686" class="edge-label" fill="var(--gold)">寫回 dailyReports</text>
+
+    <g class="node" data-id="gmailReport">
+      <rect class="box" x="1150" y="700" width="150" height="80" rx="12" fill="var(--red-dim)" stroke="var(--red)"/>
+      <text x="1165" y="730" class="box-title" fill="var(--red)">Gmail</text>
+      <text x="1165" y="750" class="box-title" fill="var(--red)">晚報</text>
+      <text x="1165" y="768" class="box-sub">全量彙整報告</text>
+    </g>
+    <path class="edge" data-from="reportGen" data-to="gmailReport" d="M 550,740 L 1150,740" stroke="var(--gold)" stroke-width="1.5" marker-end="url(#a-gold)"/>
+    <text x="700" y="732" class="edge-label" fill="var(--gold)">寄出</text>
+
+    <!-- ============ Family output ============ -->
+    <g class="node" data-id="familyApp">
+      <rect class="box" x="560" y="850" width="520" height="115" rx="16" fill="var(--teal-dim)" stroke="var(--teal)" stroke-width="1.8"/>
+      <text x="820" y="885" text-anchor="middle" class="box-title" fill="var(--teal)" font-size="16">② 給家屬看的輸出</text>
+      <text x="820" y="910" text-anchor="middle" class="box-sub">家屬App儀表板（即時監聽④ snapshots()）</text>
+      <text x="820" y="930" text-anchor="middle" class="box-sub">＋收到 Gmail 緊急通報／晚報</text>
+      <text x="820" y="950" text-anchor="middle" class="box-sub" fill="var(--teal)">今日健康卡片／警報列表／對話摘要／歷史晚報</text>
+    </g>
+
+    <path class="edge" data-from="firestore" data-to="familyApp" d="M 820,620 L 820,850" stroke="var(--teal)" stroke-width="1.8" marker-end="url(#a-teal)"/>
+    <text x="836" y="770" class="edge-label" fill="var(--teal)">realtime</text>
+    <text x="836" y="786" class="edge-label mono" fill="var(--teal)">snapshots()</text>
+
+    <path class="edge" data-from="gmailAlert" data-to="familyApp" d="M 1225,525 C 1320,650 1320,780 1080,850" stroke="var(--red)" stroke-width="1.4" stroke-dasharray="3 3" marker-end="url(#a-red)"/>
+    <path class="edge" data-from="gmailReport" data-to="familyApp" d="M 1150,760 C 1050,800 1000,820 1080,850" stroke="var(--red)" stroke-width="1.4" stroke-dasharray="3 3" marker-end="url(#a-red)"/>
+
+  </svg>
+  </div>
+</div>
+
+<script>
+  const nodes = document.querySelectorAll('.node');
+  const edges = document.querySelectorAll('.edge');
+  nodes.forEach(node => {
+    node.addEventListener('mouseenter', () => {
+      const id = node.getAttribute('data-id');
+      edges.forEach(e => {
+        if (e.getAttribute('data-from') === id || e.getAttribute('data-to') === id) {
+          e.classList.add('edge-active');
+        } else {
+          e.classList.add('edge-dim');
+        }
+      });
+    });
+    node.addEventListener('mouseleave', () => {
+      edges.forEach(e => e.classList.remove('edge-active', 'edge-dim'));
+    });
+  });
+</script>
+</body>
+</html>
