@@ -21,8 +21,17 @@ async function resolveRecipients(elderId: string): Promise<string[]> {
   return fromDb.length ? fromDb : config.familyEmails;
 }
 
-/** 以 Gmail 寄信給家屬。未設定 Gmail 或沒有收件人時只印 log，方便本機開發。 */
-export async function notifyFamily(elderId: string, subject: string, text: string): Promise<boolean> {
+/**
+ * 以 Gmail 寄信給家屬。html 有給就送 HTML 信件（text 當作純文字備援，
+ * 部分信箱或無法顯示 HTML 的通知服務會退回顯示 text 版本）；
+ * 未設定 Gmail 或沒有收件人時只印 log，方便本機開發。
+ */
+export async function notifyFamily(
+  elderId: string,
+  subject: string,
+  text: string,
+  html?: string,
+): Promise<boolean> {
   try {
     const to = await resolveRecipients(elderId);
     if (!config.gmailUser || !config.gmailAppPassword || to.length === 0) {
@@ -34,6 +43,7 @@ export async function notifyFamily(elderId: string, subject: string, text: strin
       to,
       subject,
       text,
+      ...(html ? { html } : {}),
     });
     return true;
   } catch (err) {

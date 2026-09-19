@@ -1,19 +1,36 @@
 import type { ElderProfile } from "./profile.js";
 import { personalizationHint } from "./profile.js";
 
-/** Agent 行為原則（v2_mvp.md §8 + §F11 個人化語域） */
-export function buildSystemPrompt(elderName: string, profile: ElderProfile): string {
+export interface ConversationContext {
+  /** 現在時段標籤，例如「早上」「中午」「下午」「晚上」 */
+  timeOfDayLabel: string;
+  /** 依時段給的用餐提問提示，例如「適合問早餐」「不要問早餐，適合問晚餐」 */
+  mealHint: string;
+  /** 今天稍早已經聊過的健康項目摘要，沒有就是空字串 */
+  todaySummary: string;
+}
+
+/** Agent 行為原則（v2_mvp.md §8 + §F11 個人化語域 + 時段感知） */
+export function buildSystemPrompt(
+  elderName: string,
+  profile: ElderProfile,
+  context: ConversationContext,
+): string {
   return `你是「小幫手」，一位溫暖、有耐心的陪伴者，正在用語音和長輩「${elderName}」聊天。
+現在是${context.timeOfDayLabel}。${context.mealHint}
 
 ${personalizationHint(profile)}
+
+${context.todaySummary}
 
 說話方式：
 - 繁體中文口語，語速慢、句子短，像家人一樣親切。
 - 先陪伴後提問：先接住對方的話題，每一輪最多問 1 個健康問題，不要像問卷。
+- 提問要符合現在的時段與今天已經聊過的內容，不要問不合時宜的問題（例如晚上不要問「今天早餐吃了嗎」），也不要重複問今天稍早已經聊過、已經有答案的項目，除非是想確認後續變化（例如早上已經問過用藥，下午可以問「藥有沒有照時間吃完」而不是重問一次一樣的問題）。
 
-要在聊天中自然了解的事（沒聊到就找機會帶出）：
-- 今天有沒有按時吃藥、吃飯
-- 昨晚睡得好不好、睡幾小時
+要在聊天中自然了解的事（找還沒聊到的項目，找機會自然帶出，不要一次全問）：
+- 用藥、飲食（依現在時段問適合的那一餐）
+- 睡眠狀況
 - 有沒有哪裡不舒服、疼痛
 - 今天心情如何
 

@@ -2,9 +2,9 @@ import { Type, type FunctionDeclaration } from "@google/genai";
 import { config } from "./config.js";
 import { elderRef, Timestamp, type AlertLevel, type HealthType } from "./firestore.js";
 import { notifyFamily } from "./notify.js";
-import { registerClarification, type ElderProfile } from "./profile.js";
+import { registerClarification, registerMetaphorFeedback, type ElderProfile } from "./profile.js";
 
-/** 宣告給 Gemini Live 的工具（規格見 v2_mvp.md §7，含 F11 個人化語域） */
+/** 宣告給 Gemini Live 的工具（規格見 v2_mvp.md §7，含 F11 個人化語域四訊號） */
 export const toolDeclarations: FunctionDeclaration[] = [
   {
     name: "log_health",
@@ -41,13 +41,29 @@ export const toolDeclarations: FunctionDeclaration[] = [
   {
     name: "register_clarification",
     description:
-      "長輩說「這是什麼意思」「聽不懂」「再說一次」等表示沒聽懂的話時呼叫，用來記錄目前語彙對這位長輩太難，不需要口頭告知長輩你呼叫了這個工具。",
+      "長輩說「這是什麼意思」「聽不懂」「再說一次」等表示沒聽懂的話時呼叫，用來記錄目前語彙對這位長輩太難。不需要口頭告知長輩你呼叫了這個工具。",
     parameters: {
       type: Type.OBJECT,
       properties: {
-        topic: { type: Type.STRING, description: "聽不懂的主題，例如藥名或當下在講的內容" },
+        topic: { type: Type.STRING, description: "聽不懂的主題，例如藥名或當下在講的內容，用簡短固定的詞彙描述以便跨次對話比對（例如都用「血壓藥服用方式」而非每次換句話說）" },
       },
       required: ["topic"],
+    },
+  },
+  {
+    name: "register_metaphor_result",
+    description:
+      "當你用某種比喻（例如機械保養、烹飪、農務、教學等類型）解釋完一件事之後，依對方接下來的反應呼叫這個工具回報：如果對方沒有追問、順著往下聊或表示理解，understood 填 true；如果對方追問或表示不懂，understood 填 false。不需要口頭告知長輩你呼叫了這個工具。",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        category: {
+          type: Type.STRING,
+          description: "這次使用的比喻類型，用簡短固定的詞彙描述（例如「機械保養類比」「烹飪類比」），以便同類型比喻的分數可以累加",
+        },
+        understood: { type: Type.BOOLEAN, description: "對方是否聽懂了這次的比喻說明" },
+      },
+      required: ["category", "understood"],
     },
   },
 ];
@@ -65,10 +81,14 @@ export async function runTool(
   args: Record<string, unknown>,
   ctx: ToolContext,
 ): Promise<Record<string, unknown>> {
-  // register_clarification 只操作記憶體內的 profile，不碰 Firestore，
-  // 所以放在 DEV_NO_DB 判斷之前，開發個人化邏輯不需要等 Firestore 接好
+  // 這兩個工具只操作記憶體內的 profile，不需要 Firestore，
+  // 放在 DEV_NO_DB 判斷之前，開發個人化邏輯不需要等 Firestore 接好
   if (name === "register_clarification") {
-    registerClarification(ctx.profile);
+    registerClarification(ctx.profile, typeof args.topic === "string" ? args.topic : undefined);
+    return { ok: true };
+  }
+  if (name === "register_metaphor_result") {
+    registerMetaphorFeedback(ctx.profile, String(args.category ?? "未分類"), Boolean(args.understood));
     return { ok: true };
   }
 
