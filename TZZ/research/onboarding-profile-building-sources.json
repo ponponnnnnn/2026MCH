@@ -1,0 +1,306 @@
+[
+  {
+    "title": "Comprehensive Geriatric Assessment (CGA) Toolkit for Primary Care Practitioners",
+    "author": "British Geriatrics Society",
+    "year": "2019",
+    "mechanism": "官方 PDF 全文讀取。CGA 流程明確分四大領域：a. Physical assessment b. Functional, social and environmental assessment c. Psychological components d. Medication review，之後進入 Creation of a problem list → Care and support planning → Regular planned review 的循環。明講不必一次問完：'A thorough assessment may have to be split into more than one session or deferred, so initial prioritisation of the most relevant issues is important'，且 'the information would accumulate over time'，完整 CGA 可能耗時達兩小時、由 GP/護理師/社工分別貢獻。另對比兩種訪談哲學：傳統醫療的 Questioning Model（評估者主導議程、自居專家）vs 社工/護理偏好的 Exchange Model（把長輩本人當作自己生活情況的專家，雙方共享互動），並建議用開放式問句如 'how has this changed in recent weeks?' 取代是非題。",
+    "verified": true,
+    "angle": "本文件 P1（分階段跨對話蒐集）與 P4（Exchange Model 語氣）的核心依據。Exchange Model 對比 Questioning Model 這組概念，直接回答了任務要查的『怎麼問而不像審問』的機制性線索——雖然沒有逐句話術，但提供了明確的態度框架可以寫進 system prompt。"
+  },
+  {
+    "title": "OASIS-E Guidance Manual",
+    "author": "Centers for Medicare & Medicaid Services (CMS)",
+    "year": "Effective 2023-01-01",
+    "mechanism": "官方 PDF 讀取 Chapter 1 全文與 Chapter 3 部分節次（Section A/F/G）。17 節（A-Q）依固定格式設計每個欄位：Intent → Time Points → Item Rationale → Response-Specific Instructions → Coding Instructions/Tips → Examples，即『先講為什麼問這題，再講怎麼收資料』。面談技巧只給資料蒐集策略而非話術：'Assessment strategies to complete any and all OASIS items include observation, interview, collaboration with other agency staff… when assessing physiologic or functional health status, direct observation is the preferred strategy.' 重要負面發現：Section F『Preferences for Customary Routine Activities』名稱看似像興趣嗜好，實際內容只問『誰同住、照顧者何時在』（M1100/M2102），OASIS-E 完全沒有蒐集嗜好、稱呼偏好、生活史這類『認識這個人』的欄位——它是純結果導向的臨床評估工具。",
+    "verified": true,
+    "angle": "本文件 P3（欄位設計先講意圖再講怎麼收）的直接依據。同時是重要的負面結果：確認了美國最權威的居家照護評估工具本身完全沒有覆蓋本專案要的『興趣/稱謂/家人』內容層，證實這塊確實是現有標準工具的空白，不是我們漏看了現成答案。"
+  },
+  {
+    "title": "42 CFR § 484.55 — Condition of participation: Comprehensive assessment of patients",
+    "author": "U.S. Code of Federal Regulations（透過 Cornell Law School LII 讀取）",
+    "year": "現行",
+    "mechanism": "條文明定評估時限（初始評估於轉介後 48 小時內；綜合評估不晚於照護開始後 5 個日曆天；每 60 天最後 5 天內更新）、執行人員資格（RN 為主）、以及必須涵蓋的內容(c)：'The patient's current health, psychosocial, functional, and cognitive status'、患者優勢與目標與照護偏好、持續居家照護需求、全面用藥回顧（含不良反應與交互作用）、'primary caregiver and their capabilities and availability'、患者代表人資訊。",
+    "verified": true,
+    "angle": "本文件 P1（60天更新週期即為分批蒐集的制度化版本）與 P2（緊急聯絡人是法規明文必收項目）的直接依據。是查到最接近『法規明定要蒐集哪些基本資料類別』的一手來源。"
+  },
+  {
+    "title": "State Operations Manual Appendix B — Guidance to Surveyors: Home Health Agencies",
+    "author": "Centers for Medicare & Medicaid Services (CMS)",
+    "year": "現行",
+    "mechanism": "官方稽核員手冊，說明州稽核員如何稽核居家照護機構是否符合 §484.55 等 Condition of Participation（entrance conference、抽樣、病歷審查流程），確認 §484.55 被列為 Level 1 稽核標準。不是第一線護理師上門的 intake 腳本本身。",
+    "verified": true,
+    "angle": "佐證 §484.55 的權威性與實際執行力度，但對『AI 怎麼問』本身啟發有限，主要作用是交叉驗證 42 CFR §484.55 不是紙上規定。"
+  },
+  {
+    "title": "CGA 經典期刊論文（多篇，含 1989/1991 JAGS）",
+    "author": "L. Z. Rubenstein 等",
+    "year": "1989/1991",
+    "mechanism": "未查證——PubMed、Springer、ResearchGate 多次嘗試皆被付費牆/cookie牆擋下，只讀到搜尋引擎摘要（提及醫療/功能/認知/心理/社經/環境六領域），未能實際讀到原文句子。",
+    "verified": false,
+    "angle": "查無實據，不採信此二手摘要作為引用依據，見文件內『未能查證的部分』第1點。"
+  },
+  {
+    "title": "Getting it Right: Improved Intake Under PDGM",
+    "author": "National Association for Home Care & Hospice (NAHC)",
+    "year": "未知",
+    "mechanism": "未查證——搜到的疑似原文件連結重新導向後回傳 404，且標題暗示內容可能是 PDGM 給付制度下的行政/計費 intake（如何驗證保險資格），未必是『認識病人』的訪談腳本本身，無法確認具體機制。",
+    "verified": false,
+    "angle": "查無實據，見文件內『未能查證的部分』第2點。"
+  },
+  {
+    "title": "GUS, A Frame-Driven Dialog System",
+    "author": "Daniel G. Bobrow, Ronald M. Kaplan, Martin Kay, Donald A. Norman, Henry Thompson, Terry Winograd (Xerox PARC)",
+    "year": "1977",
+    "mechanism": "《Artificial Intelligence》8(2), 155-173，frame-based 對話系統源頭論文，全文讀取。frame 由多個 slot 組成，系統以深度優先遞迴方式依序嘗試填 slot，順序由 slot 的 ASKCLIENT 屬性決定。支援 mixed-initiative：使用者一次答多個欄位（如城市+日期），系統直接填入對應 slot 不重複問；部分 slot（如 ARRIVAL-SPEC）系統永遠不主動問，只在使用者自願提供時記錄。",
+    "verified": true,
+    "angle": "本文件 P7（一次接住多欄位，不逐一重問）的原始依據，也是『必問欄位 vs 自願提供才記錄欄位』兩層設計的理論源頭，直接對應 P2/P6 的『部分欄位不主動問，靠機會式命中』邏輯。"
+  },
+  {
+    "title": "Speech and Language Processing (3rd ed. draft), Appendix K — Frame-Based Dialogue Systems",
+    "author": "Daniel Jurafsky & James H. Martin",
+    "year": "2026-08-19 draft（Stanford 官方線上草稿）",
+    "mechanism": "整理 GUS 為六元件 dialogue-state 架構，給出可操作的 ASR 確認門檻（信心分四級：<α reject、≥α 明確確認、≥β 隱含確認、≥γ 不確認）。關鍵技巧是 confreq 對話行為——確認已知資訊同時自然帶出下一題，例句：'You are looking for a restaurant. What type of food do you like?' 一句話同時確認+問下一欄位。",
+    "verified": true,
+    "angle": "本文件 P8（confirm-and-bridge 句型）的直接依據，補強既有 R9/R10 橋接機制在 profile 欄位蒐集情境下的具體句型範本。"
+  },
+  {
+    "title": "4 Must-Have Design Patterns for Engaging Voice-First User Interfaces",
+    "author": "Paul Cutsinger, Head of Alexa Voice Design Education (Amazon)",
+    "year": "2018",
+    "mechanism": "官方白皮書全文讀取。明確處理『over-answer』：使用者一次答超過所問資訊時，系統不能忽略、不能重複問已答過的（例句：使用者提前說出 'kayaking'，下一句不該再問 'What would you like to do there?'）。明確反對用『wizard/表單』隱喻設計語音對話，主張用 dialog management 管理狀態。沒有 onboarding 該問幾題的具體段落。",
+    "verified": true,
+    "angle": "本文件 P7 的第二個獨立佐證來源，且明確警告『表單式』設計是反模式，直接支持本專案『不能讓長輩覺得在填表單』的核心關切。"
+  },
+  {
+    "title": "官方文件：Forms（slot filling 機制）",
+    "author": "Rasa",
+    "year": "現行",
+    "mechanism": "'Rasa will ask for the next empty slot from the slots listed for your form in the domain file'——預設一次問一個 slot，依 domain 檔順序循環直到填滿。無官方設計理由說明，但 slot_mappings 支援從單一句子同時抽取多個欄位。",
+    "verified": true,
+    "angle": "工程實作層級的參考範例，確認業界主流對話系統框架的預設行為就是『固定順序、一次一欄位、但支援單句多欄位抽取』，與 GUS/Jurafsky & Martin 的機制一致，可作為 P1/P7 落地時的工程參照。"
+  },
+  {
+    "title": "Progressive Disclosure",
+    "author": "Jakob Nielsen, Nielsen Norman Group",
+    "year": "2006",
+    "mechanism": "核心規則：'designs that go beyond 2 disclosure levels typically have low usability'；建議用 frequency-of-use 決定哪些欄位先問。性質為 UX 業界方法論，非學術實證研究。",
+    "verified": true,
+    "angle": "本文件 P1 的佐證來源之一。標注性質為業界方法論（非學術實證），比照既有文件對 UX 圈觀點的謹慎採信態度。"
+  },
+  {
+    "title": "Progressive Profiling 官方產品說明",
+    "author": "Marketo / Oracle Eloqua",
+    "year": "現行",
+    "mechanism": "Eloqua staged mode 官方說明：'gives you control over which fields appear together and on which visit number they trigger'——維護一個欄位池，每次來訪只問幾題新的，已知欄位不再問。",
+    "verified": true,
+    "angle": "本文件 P1 的直接機制範本——『跨多次接觸分批蒐集欄位池』這個概念在行銷科技領域已有成熟、可操作的商業實作，雖然情境（行銷表單 vs 長輩陪伴對話）差異大，但『欄位池 + 分批觸發』的資料結構可以直接類比套用。"
+  },
+  {
+    "title": "What's The Talk on VUI Guidelines? A Report on the State of Practice",
+    "author": "Fereshteh Murad, Geórgia Candello, Cosmin Munteanu",
+    "year": "2023",
+    "mechanism": "CUI '23 (ACM)，作者版全文讀取。系統性回顧 336 條 VUI 準則（40篇同行評審論文，1995-2021），歸納 14 條共識準則。Guideline 4「Break tasks up」引用研究：'reducing the number of options shown at one time (4 to 9 options on average)'；Guideline 13：開放式提問建立 common ground，之後才用限制性提問澄清。",
+    "verified": true,
+    "angle": "目前查到唯一系統性回顧（非單一設計師意見）的 VUI 準則文獻，Guideline 13 的『先開放、後限制』排序原則直接支持本文件 P4/P9 的開放式問句優先邏輯；Guideline 4 的『4-9個選項』雖是選單認知負荷研究、非欄位數研究，僅能類比參考，不能直接當作『欄位數門檻』的證據。"
+  },
+  {
+    "title": "Voice Design: A Guide to User Onboarding",
+    "author": "Jess Thornhill (Voicebot.ai)",
+    "year": "2018",
+    "mechanism": "'tell the user as early as reasonably possible the number of questions they can expect'，舉 Song Quiz 案例（開場即告知『7道題』）設定使用者預期。性質為業界部落格，非學術或官方文件。",
+    "verified": true,
+    "angle": "性質標注為業界部落格，信心層級低於官方白皮書/學術論文，但『提前告知會問幾題以管理預期』這個具體建議值得參考，可用於 P1 的欄位池 batch 溝通設計（例如首次通話可以簡短說明『我想多認識你一點，之後會慢慢問』）。"
+  },
+  {
+    "title": "Conversation Design guide — onboarding 專屬段落",
+    "author": "Google",
+    "year": "未知",
+    "mechanism": "未查證——舊版 Actions on Google 的 onboard-users.html 頁面已 301 導回首頁，Web Archive 存取被工具阻擋，無法確認歷史內容。",
+    "verified": false,
+    "angle": "查無實據，見文件內『未能查證的部分』第4點附帶提及。"
+  },
+  {
+    "title": "12 basics of interviewing, listening and note-taking",
+    "author": "Roy Peter Clark (Poynter Institute)",
+    "year": "2015（2023 插畫重製版）",
+    "mechanism": "機構官方訓練教材原文讀取。第3條明講問題順序：'Bring into the interview a list of questions in the general order you want to ask them'，並補充 'You may want to save a tougher question until the end.'（難題留到最後）。插畫版另有：'Ask one question at a time. This isn't multiple choice.'、'Ask open-ended questions, not ones that can be answered yes or no.'、'Be patient. Don't break the silence with a new question.'",
+    "verified": true,
+    "angle": "本文件 P9（開放式問句/一次一題）與 P10（追問後留白）的核心依據，是記者培訓機構自己發布的一手訓練教材，可信度高。"
+  },
+  {
+    "title": "Working: Researching, Interviewing, Writing — 'Tricks of the Trade' 章",
+    "author": "Robert A. Caro",
+    "year": "2019",
+    "mechanism": "高信心間接引用——透過多個獨立二手報導（History News Network、Austin Kleon、City Journal）收斂到同一段逐字引文，未直接讀到原書掃描頁。原文：'Silence is the weapon'；'when I'm waiting for a person I'm interviewing to break a silence by giving me a piece of information I want, I write \"SU\" (for Shut Up!) in my notebook.'",
+    "verified": true,
+    "angle": "本文件 P10（追問後留白）的第二個獨立佐證來源，'SU' 筆記法是具體可操作的技巧描述，雖非直接讀原書，但多個獨立二手來源收斂到同一段逐字引文，信心足夠。"
+  },
+  {
+    "title": "The Craft of Interviewing",
+    "author": "John Brady",
+    "year": "1977",
+    "mechanism": "未查證——Internet Archive 條目（archive.org/details/craftofinterview0000brad）只有書目 metadata（頁數、出版社、主題詞），全文為 access-restricted，查無可引用的具體內文。",
+    "verified": false,
+    "angle": "查無實據，見文件內『未能查證的部分』第5點。"
+  },
+  {
+    "title": "The Mom Test",
+    "author": "Rob Fitzpatrick",
+    "year": "2013",
+    "mechanism": "多句逐字引用交叉核對取得（原始 PDF 編碼問題無法直接解析，改用逐句引用原書的深度書摘交叉比對多筆搜尋結果確認）：'Compliments are the fool's gold of customer learning: shiny, distracting, and worthless.'；'Once you start talking about your idea, they stop talking about their problems.'；好問題示範 'Talk me through the last time that happened.' vs 壞問題示範 'Would you pay X for a product which did Y?'。全書有專章 'Keeping it casual' 專門講維持輕鬆語氣。",
+    "verified": true,
+    "angle": "本文件 P9（具體過去經驗題優先於假設意願題）的核心依據，是三個訪談方法論方向裡跟『不要讓長輩覺得被審問』最直接對應的一套機制。"
+  },
+  {
+    "title": "Customer Development 方法論",
+    "author": "Steve Blank",
+    "year": "未知",
+    "mechanism": "未查證——查到『get out of the building』概念層級敘述，但實際抓取 steveblank.com 文章內容時頁面主體是導覽列與影片嵌入，沒有抓到具體訪談機制的文字段落。",
+    "verified": false,
+    "angle": "查無實據，見文件內『未能查證的部分』第6點。"
+  },
+  {
+    "title": "Learning from Strangers: The Art and Method of Qualitative Interview Studies",
+    "author": "Robert S. Weiss",
+    "year": "1994",
+    "mechanism": "部分查證——透過一份帶頁碼引用的課程讀書筆記取得一句直接引文：'the respondent provides information while the interviewer...is responsible for directing the respondent to the topics that matter to the study (p. 8)'。出版社層級描述補充『an open and trusting alliance between interviewer and respondent』。具體的『開場前該做什麼動作』機制查無可引用原文。",
+    "verified": false,
+    "angle": "訪談者『引導話題但形式仍要像對話』的定位可轉譯為『AI 要主動決定聊天走向但語氣要像聊天不是問卷』的設計原則，但因機制細節沒查到一手佐證，啟發強度標記為較弱，不列入正式硬規則依據，僅供參考。"
+  },
+  {
+    "title": "Life Lab 官方頁面",
+    "author": "ORCATECH / Oregon Health & Science University (OHSU)",
+    "year": "現行",
+    "mechanism": "官網原文：'The Life Lab uses a diverse lineup of digital sensors and devices installed in volunteers' homes to collect data about everyday activities, such as walking, sleeping habits, or medication taking.' 有被動紅外線動作感測器、門磁、體重計、藥盒、穿戴式裝置。沒有找到『如何建立個人基準值』的具體機制描述——官網只講監測什麼，不講怎麼建 baseline。",
+    "verified": true,
+    "angle": "確認 ORCATECH 這條居家老年感測研究線真實存在且權威，但僅描述性內容，baseline 建立機制要靠下方的方法論論文與量化研究補充。"
+  },
+  {
+    "title": "Methodology for Establishing a Community-Wide Life Laboratory",
+    "author": "ORCATECH 研究群（PMC6126551）",
+    "year": "未標明（PMC 收錄）",
+    "mechanism": "列出監測領域：'mobility (e.g., room transitions, steps, gait speed), physiologic function (e.g., weight, body mass index, pulse), sleep behaviors (e.g., sleep time, trips to the bathroom at night), medication adherence (e.g., missed doses), social engagement (e.g., time spent out of home, time couples spend together), and cognitive function'。最長部署案例達 11 年。沒有明確的基準期天數規定——核心方法論論文本身不講『要幾天才能建立可信 baseline』，而是靠長期連續監測累積。",
+    "verified": true,
+    "angle": "本文件 P11 的監測領域分類直接參考來源（行動力/生理功能/睡眠/用藥遵從/社交參與/認知功能六大類），可作為 F4 異常偵測欄位設計的類比框架；但明確不提供天數依據，是重要的誠實限制。"
+  },
+  {
+    "title": "Detecting Older Adults' Behavior Changes During Adverse External Events",
+    "author": "研究群（PMC12061350）",
+    "year": "未標明（PMC 收錄）",
+    "mechanism": "用 interrupted time series + segmented regression，基準不是固定天數視窗，而是『同期比較』：'an equivalent number of season-matched days from the previous year'（COVID組）或 'baseline days with air quality index ≤50…during the same month'（煙霧組）。",
+    "verified": true,
+    "angle": "提供了『基準線不一定要是過去N天，也可以是同期比較』這個替代思路，對本文件 P11 是重要補充：如果長輩對話樣本不足以支撐『過去N次』基準，也可以考慮季節/月份層級的同期比較邏輯。"
+  },
+  {
+    "title": "老年行為標記研究（COVID-19 confinement 相關）",
+    "author": "Lee 等（University of Missouri / TigerPlace 研究傳統）",
+    "year": "2025",
+    "mechanism": "《JMIR mHealth and uHealth》，DOI 10.2196/56678。明確給出基準期定義：'approximately one month before the COVID-19 outbreak (January 14, 2020-February 13, 2020)' 對比 'approximately one month after the stay-at-home order'。用 paired t-test、每日均值聚合。",
+    "verified": true,
+    "angle": "注意此為 University of Missouri/TigerPlace 研究傳統，非 ORCATECH，但同屬居家感測老年研究。提供了本次查證裡最具體的『約一個月』基準期長度範例，可作為 P11 基準線最短可信視窗的類比錨點（但仍是居家感測數據，非對話自陳）。"
+  },
+  {
+    "title": "Counting Zs: Determining the Monitoring Days Needed to Obtain Reliable Sleep Metrics in Older Adults with Mild Cognitive Impairment",
+    "author": "Chang 等（University of Nebraska Medical Center）",
+    "year": "2026",
+    "mechanism": "《Behavioral Sleep Medicine》。用 MMRM（linear mixed models for repeated measures）以第60天為參照，算出：全體平均需總睡眠時間(TST) 8天／睡眠效率(SE) 6天／入睡後清醒時間(WASO) 6天才穩定；MCI長者需要更多天（TST 9天、SE 7天、WASO 6天），認知正常對照組只需2-4天。",
+    "verified": true,
+    "angle": "本次查證找到最直接可用的『基準線最少要幾天』量化依據，且明確給出『認知能力較弱者需要更長基準期』這個方向性結論，是本文件 P11 的核心依據——但仍須誠實標註：原始研究是穿戴式感測器的連續睡眠數據，不是對話式自陳資料，天數本身無法直接移植，只能借用『認知較弱者需要更長基準期』的方向。"
+  },
+  {
+    "title": "睡眠信度研究（一般成人）",
+    "author": "Lau 等（PMC10104388）",
+    "year": "2022",
+    "mechanism": "《Sleep Advances》。用 ICC(two-way mixed)，研究對象為21-40歲一般成人（非長者）。'3和5晚' 達週estimate的good/very good信度，'5和10晚' 達月estimate信度。",
+    "verified": true,
+    "angle": "跨情境類比參考，研究對象非長者、非居家照護情境，僅用於佐證『多晚監測才能達到穩定信度』這類研究設計在睡眠監測領域是常見方法論，不直接支持長者情境的具體天數。"
+  },
+  {
+    "title": "跌倒偵測/穿戴式感測器基準期規定（多份專利文件）",
+    "author": "未標明（專利檢索）",
+    "year": "未標明",
+    "mechanism": "未查證——查到的多是專利文件（method/apparatus for fall detection），只講『thresholds must be empirically established and personalized for each wearer』於『test or pre-operational period』，沒有查到具體天數規定的一手學術文獻。",
+    "verified": false,
+    "angle": "查無實據，見文件內『未能查證的部分』第9點。"
+  },
+  {
+    "title": "Standards for Social Work Case Management",
+    "author": "National Association of Social Workers (NASW)",
+    "year": "現行",
+    "mechanism": "官網原文直讀。'assessment guides service planning and implementation'、'an ongoing activity, not a one-time event'。列出評估領域但沒有給出先後順序或層級規則。",
+    "verified": true,
+    "angle": "讀到具體內容，但不支持『安全資訊優先』假設——這是誠實的負面結果，寫入本文件 P2 的『文獻衝突、無單一答案』論述中。"
+  },
+  {
+    "title": "Standards of Professional Case Management Practice",
+    "author": "Case Management Society of America (CMSA)",
+    "year": "現行",
+    "mechanism": "未查證（受限）——官方 PDF 文字層解析受限，安全概念被嵌入 case management 定義本身（'promote patient safety, quality of care'），但沒有讀到明確的『先問什麼後問什麼』排序規則。不確定是原文本身沒講，還是工具解析限制沒讀到。",
+    "verified": false,
+    "angle": "查無實據（受工具限制），見文件內『未能查證的部分』第12點，誠實區分『原文沒有』與『工具讀不到』兩種可能性。"
+  },
+  {
+    "title": "Comprehensive Geriatric Assessment（臨床頁面）",
+    "author": "Merck Manual",
+    "year": "現行",
+    "mechanism": "讀取官方臨床頁面確認查無實據——只列評估領域，無排序/優先權指引。",
+    "verified": false,
+    "angle": "與 NASW/CMSA/BGS 一致地確認『沒有官方文件明講欄位排序規則』這個誠實結論，四個獨立來源收斂到同一個負面結果，增加這個結論本身的可信度。"
+  },
+  {
+    "title": "The Seven-Stage Crisis Intervention Model",
+    "author": "Michael C. Roberts & Allen J. Ottens",
+    "year": "2005",
+    "mechanism": "《Brief Treatment and Crisis Intervention》5(4): 329-339。直接讀到具體機制。Stage 1明確是『a swift but thorough biopsychosocial assessment』，且明講：'Assessing lethality, first and foremost, involves ascertaining whether the client has actually initiated a suicide attempt…'——安全/致命性評估明確排在關係建立（Stage 2）與問題界定（Stage 3）之前。",
+    "verified": true,
+    "angle": "支持『安全類資訊優先』的一手證據，但這是危機介入模型，適用於已有急迫風險的情境，不是常規初次建檔情境。本文件 P2 明確提醒套用到『陪伴型AI日常聊天建檔』需要小心，原情境假設案主已知處於危機中，與長照陪伴的日常性質不同。"
+  },
+  {
+    "title": "TIP 57 — Trauma-Informed Care in Behavioral Health Services",
+    "author": "Substance Abuse and Mental Health Services Administration (SAMHSA)",
+    "year": "2014",
+    "mechanism": "直接讀到具體機制，方向與 Roberts & Ottens 相反。原文：'If the client initially denies a history of trauma (or minimizes it), administer the questionnaire later or delay additional trauma-related questions until the client has perhaps developed more trust in the treatment setting.'——敏感資訊應該延後，先建立信任。",
+    "verified": true,
+    "angle": "本文件 P2 的核心反向證據，對『陪伴型AI跟長輩聊天』情境可能更適用——過早問『緊急聯絡人是誰、你有什麼病』可能顯得生硬/侵入性，跟長照陪伴的『先建立關係』直覺衝突。這個與 Roberts & Ottens 的正面衝突是本次查證最重要的誠實發現之一。"
+  },
+  {
+    "title": "Discourse Behavior of Older Adults Interacting With a Dialogue Agent",
+    "author": "Razavi 等",
+    "year": "2019",
+    "mechanism": "未查證（核心機制部分）——arXiv 1907.06279。這是唯一直接命中『對話式AI+長者+多次會談排序』情境的文獻，7-9次會談涵蓋27個主題分三組、依『親密度』與『難度』分級，觀察到『increasing verbosity with successive sessions, especially for more difficult topics』。但PDF二進位無法解析，摘要頁也沒有方法論細節，無法讀到明確排序規則的原文句子，只能確認『有分級』但排序機制未經一手驗證。",
+    "verified": false,
+    "angle": "情境上最貼近本專案（對話式AI + 老年使用者 + 多次會談漸進蒐集），但因無法一手驗證排序機制細節，只能當作『這個方向有人研究過』的存在性佐證，不能當作已驗證的分級依據引用，見文件內『未能查證的部分』第11點。"
+  },
+  {
+    "title": "Friendly Calls Program — Volunteer Manual（16頁）+ Provider Manual（33頁）",
+    "author": "New York State Office for the Aging (NYSOFA)",
+    "year": "未標明",
+    "mechanism": "兩份手冊全文讀完。明確指示志工『避免討論健康狀況、財務、法律事務、家庭關係』。沒有公開任何附帶的『Participant Intake Questionnaire』實際欄位內容——手冊只提到這份表格存在，是另外寄送的附件，未收錄在公開PDF裡。",
+    "verified": true,
+    "angle": "本文件 P6（機會式蒐集、不主動列清單問家庭背景）的直接依據，且是重要的誠實限制發現：連最貼近本專案情境的志工手冊，也不公開『內容欄位層』的具體表單，這個查無實據本身就是有意義的結論，不是查證失敗。與 `opening-moves-and-elder-concerns.md` 已用於開場序列層（O7）的部分不重複，本次聚焦內容層。"
+  },
+  {
+    "title": "Friendly Visitor Program Volunteer Handbook（18頁）",
+    "author": "The Guardianship Project / Vera Institute of Justice",
+    "year": "未標明",
+    "mechanism": "全文讀完。逐字句：'ask them permission to address them by their first name rather than assume it'——直接對應『怎麼稱呼對方』的問法。另有15項具體對話主題清單（照片/嗜好/回憶等），但沒有 emergency contact/健康狀況等結構化欄位。",
+    "verified": true,
+    "angle": "本文件 P5（稱謂要問不要猜）的直接、逐字依據，是本次查證少數能直接轉成具體話術規則的一手來源。"
+  },
+  {
+    "title": "電話陪伴（telephone befriending）志工手冊完整版",
+    "author": "Age UK",
+    "year": "未標明",
+    "mechanism": "未完成查證——時間限制內未能取得逐字內容確認。先前研究（`opening-moves-and-elder-concerns.md`）已知的是配對邏輯層級資訊（依興趣配對志工與長輩），逐字開場腳本與內容欄位層指引本次仍未公開確認。",
+    "verified": false,
+    "angle": "查無實據（時間限制未完成），見文件內『未能查證的部分』第14點。"
+  },
+  {
+    "title": "「齡活大使」訓練手冊",
+    "author": "香港嶺南大學",
+    "year": "未標明",
+    "mechanism": "未完成查證——時間限制內未能取得確認。",
+    "verified": false,
+    "angle": "查無實據（時間限制未完成），見文件內『未能查證的部分』第14點。"
+  }
+]

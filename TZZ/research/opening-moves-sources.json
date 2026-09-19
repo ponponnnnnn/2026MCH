@@ -1,0 +1,40 @@
+[
+  {
+    "title": "Sequencing in Conversational Openings",
+    "author": "Emanuel A. Schegloff",
+    "year": "1968",
+    "source_type": "期刊論文 — American Anthropologist, 70(6), pp. 1075–1095（已於 Wiley Online Library / AnthroSource 核實存在，DOI: 10.1525/aa.1968.70.6.02a00030）",
+    "mechanism": "以美國中西部某警局申訴專線的電話錄音為語料，首度提出 summons-answer（呼喚—回應）是電話對話開場的強制性相鄰對（adjacency pair）：電話鈴響即是 summons，接電話的「喂」即是 answer；answer 缺席會觸發重複 summons（再次響鈴/再說一次喂）。這篇奠定了『開場是由一組規則排序的序列組成，話題要等序列跑完才能出現』的基本主張，是後續所有 opening sequence 研究的起點，也是最貼近你們要的『第一句怎麼被結構性決定』的原始文獻。",
+    "angle": "冷啟動（cold open）機制：對話「第一句/第一話題」不是自由選擇出來的，而是由一組固定的先行儀式性序列所結構性決定——講者要先跑完一串必經序列，才輪到到「第一個實質話題」的位置（slot）。這與 R1-R15 處理的「話題進行中怎麼轉換」是不同層級的機制：R1-R15 管的是話題與話題之間怎麼接、怎麼換；這裡管的是「話題出現之前」的骨架怎麼把第一個話題的位置生出來。\n\nSchegloff 的開場研究把電話開場拆成四個順序固定、逐一達成的子序列：(1) summons-answer（電話鈴響/「喂」——用一個「summons」動作換來一個「answer」，是強制的相鄰對，answer 缺席會觸發重複 summons）；(2) identification-recognition（雙方確認「你是誰/我認得你」，通常隱含在聲音辨識或稱謂裡完成，不見得會說出口）；(3) greeting exchange（hi/hi 這類問候詞交換）；(4) how-are-you 序列（一輪或多輪互相問候近況）。這四個序列走完之後才會出現「anchor position」——也就是通話中第一個實質話題被提出、且被雙方認可為「正式話題」的位置。也就是說：機制上決定「第一個話題怎麼被選定」的，不是內容判斷（該聊什麼），而是序列位置（走到哪一步才輪到話題出現），而 how-are-you 序列常常就是「第一話題」悄悄被夾帶進來的接口——回答如果偏離制式的「fine」而給出實質內容（例如抱怨身體不舒服），對方的下一輪回應就決定這段話會不會被升格成正式的第一話題。\n\n對應到手機語音 AI 的應用：可以把「開場」設計成也走一個簡化的儀式性序列（呼喚/回應 → 辨識彼此 → 問候 → how-are-you 詢問），並把「今天想聊什麼/我注意到您最近…」這類第一話題放在 how-are-you 之後的位置，而不是通話開頭第一句——這是結構性建議，不是規則清單，供你們自己判斷是否要落成新的「R0」開場規則。"
+  },
+  {
+    "title": "The Routine as Achievement",
+    "author": "Emanuel A. Schegloff",
+    "year": "1986",
+    "source_type": "期刊論文 — Human Studies, 9(2–3), pp. 111–151（已於 Springer / link.springer.com 核實存在，DOI: 10.1007/BF00148124）",
+    "mechanism": "在 1968 年的 summons-answer 基礎上，補齊完整的四段式電話開場序列：summons-answer → identification-recognition（雙方確認彼此身分/聲音辨識）→ greeting exchange（hi/hi）→ how-are-you 序列（howareyou's，互相問近況）。重點論證：這套看似『制式化、機械化』的開場其實是雙方在每一輪逐步『達成』（achievement）出來的，不是背好台詞唸出來的；尤其 how-are-you 序列常常是『第一個實質話題』被引入的接口——如果回答不是制式的『fine, and you』而是給出實質內容（例如抱怨身體不適），對方下一輪的反應就決定這段內容會不會被雙方共同『升格』為正式的第一話題。這是目前對『開場最後怎麼銜接到第一話題』機制描述最細緻的一篇，直接對應你們冷啟動問題裡『how are you sequence / howareyou's』這個關鍵字。",
+    "angle": "冷啟動（cold open）機制：對話「第一句/第一話題」不是自由選擇出來的，而是由一組固定的先行儀式性序列所結構性決定——講者要先跑完一串必經序列，才輪到到「第一個實質話題」的位置（slot）。這與 R1-R15 處理的「話題進行中怎麼轉換」是不同層級的機制：R1-R15 管的是話題與話題之間怎麼接、怎麼換；這裡管的是「話題出現之前」的骨架怎麼把第一個話題的位置生出來。\n\nSchegloff 的開場研究把電話開場拆成四個順序固定、逐一達成的子序列：(1) summons-answer（電話鈴響/「喂」——用一個「summons」動作換來一個「answer」，是強制的相鄰對，answer 缺席會觸發重複 summons）；(2) identification-recognition（雙方確認「你是誰/我認得你」，通常隱含在聲音辨識或稱謂裡完成，不見得會說出口）；(3) greeting exchange（hi/hi 這類問候詞交換）；(4) how-are-you 序列（一輪或多輪互相問候近況）。這四個序列走完之後才會出現「anchor position」——也就是通話中第一個實質話題被提出、且被雙方認可為「正式話題」的位置。也就是說：機制上決定「第一個話題怎麼被選定」的，不是內容判斷（該聊什麼），而是序列位置（走到哪一步才輪到話題出現），而 how-are-you 序列常常就是「第一話題」悄悄被夾帶進來的接口——回答如果偏離制式的「fine」而給出實質內容（例如抱怨身體不舒服），對方的下一輪回應就決定這段話會不會被升格成正式的第一話題。\n\n對應到手機語音 AI 的應用：可以把「開場」設計成也走一個簡化的儀式性序列（呼喚/回應 → 辨識彼此 → 問候 → how-are-you 詢問），並把「今天想聊什麼/我注意到您最近…」這類第一話題放在 how-are-you 之後的位置，而不是通話開頭第一句——這是結構性建議，不是規則清單，供你們自己判斷是否要落成新的「R0」開場規則。"
+  },
+  {
+    "title": "The New York State Friendly Calls Program — Volunteer Manual (內含「Making Your Introductory Friendly Call: A Sample Script and Conversation Starters」專節)",
+    "author": "New York State Office for the Aging (NYSOFA)，與 Association on Aging in New York (AgingNY)、DOROT 合作開發",
+    "mechanism": "已完整讀取此PDF全文(16頁)逐字確認。冷啟動結構明確分兩層：(1)首次「介紹電話」(5-10分鐘)有逐字腳本——志工先報自己名字+機構名+說明是Friendly Calls Program的志工→確認長輩身分→說明這通電話的目的是「排定之後每週通話時間、順便認識彼此」→先問方便的通話時段，等行政事項談完才問「這通電話快結束前，先認識你一下——你提到你有讀書會，最近在讀什麼？」——也就是先處理事務性目的、行程確認，再用長輩自己剛提到的線索(而非志工預設題目)帶出第一個聊天話題。(2)明訂「話題選擇」的安全清單與地雷清單：建議開場話題依序為「怎麼知道這個方案的/興趣嗜好/居住社區」，並明文列出要避開的第一波話題——政治、宗教、健康狀況、財務、法律、家庭紛爭，理由是這些話題容易讓長輩防衛或不舒服。此文件是WHO ICOPE式陪伴電話落地機制中，目前查到對「冷啟動」講得最具體、且逐字稿公開可查證的一份。",
+    "source_type": "機構公開發布之志工訓練手冊(PDF，官網 aging.ny.gov 直接下載)",
+    "year": "2022年3月(文件內部日期)",
+    "angle": "冷啟動(cold open)研究:陪伴電話「每次通話開頭第一句/第一個話題怎麼選」——這跟既有 R1-R15(對話進行中換題、承接長輩剛講的話)是不同機制，R1-R15管的是熱轉換，這裡要處理的是每通電話開始前、還沒有任何話可接的情況下如何起頭。\n\n已用 WebSearch/WebFetch 實際查證多個真實機構(Age UK Telephone Friendship Service、The Silver Line、Institute on Aging Friendship Line、台灣各縣市獨居長者電話問安服務、DOROT Friendly Visiting/Caring Calls)，這些機構和專線都確認真實存在、且都有志工訓練/開場相關內容，但多數機構的志工手冊逐字開場腳本並不對外公開(需申請成為志工才能取得)，台灣各縣市社會局的電話問安服務也只公開服務項目說明，查無公開的志工開場腳本或手冊。\n\n目前查到「公開可下載、且逐字稿具體到可直接引用」的最佳來源只有1份，第2份為真實存在但內容較概略的機構志工手冊，如下。若需要更完整的逐字開場腳本，建議下一步鎖定關鍵字：\"Friendly Calls Program\" volunteer manual、\"DOROT\" caring calls training、\"befriending\" \"conversation starters\" pdf、以及日文/中文圈的\"独居老人\" \"電話訪問\" マニュアル 開場，或直接向 Age UK / Institute on Aging 申請志工資料索取完整手冊。"
+  },
+  {
+    "title": "Befriending Volunteer Handbook — Age UK Lincoln & South Lincolnshire",
+    "author": "Age UK Lincoln & South Lincolnshire(英國 Age UK 體系下的獨立地方慈善機構，已查證其官網與PDF存在)",
+    "mechanism": "已讀取此PDF確認：機構的服務項目明確包含「Telephone Befriending Service」(電話陪伴)，與居家陪訪並列。手冊揭露的冷啟動機制較概略：配對前會先向志工與長輩雙方詢問「興趣嗜好」以做同好配對；志工在正式接觸前會拿到「conversation starters」清單協助破冰、認識新朋友；首次接觸(手冊寫的是First Visit，電話版流程應類似)會由Volunteer Coordinator陪同進行。但手冊未公開逐字開場腳本，只公開配對邏輯與流程框架，具體「第一句話說什麼」層級的內容需另外申請成為志工才能取得完整教材——這點誠實標註為未完全查證到逐字層級。",
+    "source_type": "機構公開發布之志工手冊(PDF，官網 ageuk.org.uk 直接下載)",
+    "year": "2020年9月",
+    "angle": "冷啟動(cold open)研究:陪伴電話「每次通話開頭第一句/第一個話題怎麼選」——這跟既有 R1-R15(對話進行中換題、承接長輩剛講的話)是不同機制，R1-R15管的是熱轉換，這裡要處理的是每通電話開始前、還沒有任何話可接的情況下如何起頭。\n\n已用 WebSearch/WebFetch 實際查證多個真實機構(Age UK Telephone Friendship Service、The Silver Line、Institute on Aging Friendship Line、台灣各縣市獨居長者電話問安服務、DOROT Friendly Visiting/Caring Calls)，這些機構和專線都確認真實存在、且都有志工訓練/開場相關內容，但多數機構的志工手冊逐字開場腳本並不對外公開(需申請成為志工才能取得)，台灣各縣市社會局的電話問安服務也只公開服務項目說明，查無公開的志工開場腳本或手冊。\n\n目前查到「公開可下載、且逐字稿具體到可直接引用」的最佳來源只有1份，第2份為真實存在但內容較概略的機構志工手冊，如下。若需要更完整的逐字開場腳本，建議下一步鎖定關鍵字：\"Friendly Calls Program\" volunteer manual、\"DOROT\" caring calls training、\"befriending\" \"conversation starters\" pdf、以及日文/中文圈的\"独居老人\" \"電話訪問\" マニュアル 開場，或直接向 Age UK / Institute on Aging 申請志工資料索取完整手冊。"
+  },
+  {
+    "title": "a",
+    "author": "b",
+    "mechanism": "c",
+    "angle": "test"
+  }
+]

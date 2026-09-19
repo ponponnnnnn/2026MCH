@@ -35,6 +35,21 @@ app.post("/jobs/daily-report", requireJobSecret, async (req, res) => {
   }
 });
 
+// Demo 專用：App 內「立即產生晚報」按鈕呼叫，不需密鑰，DEMO_MODE=1 才啟用
+app.post("/demo/daily-report", async (req, res) => {
+  if (!config.demoMode) {
+    res.status(404).json({ error: "not found" });
+    return;
+  }
+  try {
+    const elderId = (req.body?.elderId as string | undefined) ?? config.defaultElderId;
+    res.json(await generateDailyReport(elderId));
+  } catch (err) {
+    console.error("[demo-daily-report]", err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 const server = createServer(app);
 const wss = new WebSocketServer({ server, path: "/ws" });
 
