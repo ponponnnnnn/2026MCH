@@ -4,6 +4,14 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Firebase Android App 尚未註冊，google-services.json 還不存在：只有在使用者把它
+// 放進 app/ 之後才套用這個 plugin，避免現在 build 直接壞掉。FlutterFire 走的是
+// Dart 端手動提供 FirebaseOptions 的初始化方式，這個 plugin 並非必要條件，純粹是
+// 檔案就位後的標準配置。
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "com.meichu.care_helper"
     compileSdk = flutter.compileSdkVersion

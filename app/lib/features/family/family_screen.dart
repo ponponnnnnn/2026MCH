@@ -129,27 +129,51 @@ class _DemoTools extends ConsumerStatefulWidget {
 }
 
 class _DemoToolsState extends ConsumerState<_DemoTools> {
-  bool _busy = false;
+  bool _busyReport = false;
+  bool _busyRing = false;
 
-  Future<void> _run() async {
-    setState(() => _busy = true);
+  Future<void> _runReport() async {
+    setState(() => _busyReport = true);
     final ok = await ref.read(repositoryProvider).triggerDailyReport();
     if (!mounted) return;
-    setState(() => _busy = false);
+    setState(() => _busyReport = false);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(ok ? '晚報已產生並寄出，請查看信箱' : '產生失敗，請確認後端已啟動且 DEMO_MODE=1')));
+  }
+
+  Future<void> _runRing() async {
+    setState(() => _busyRing = true);
+    final pushed = await ref.read(repositoryProvider).triggerRing();
+    if (!mounted) return;
+    setState(() => _busyRing = false);
+    final msg = pushed == null
+        ? '撥打失敗，請確認後端已啟動且 DEMO_MODE=1'
+        : pushed == 0
+            ? '已送出，但長輩端還沒登記裝置'
+            : '已送達 $pushed 台裝置';
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(top: 12),
-        child: OutlinedButton.icon(
-          onPressed: _busy ? null : _run,
-          icon: _busy
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Icon(Icons.mail),
-          label: const Text('Demo：立即產生晚報'),
-        ),
+        child: Column(children: [
+          OutlinedButton.icon(
+            onPressed: _busyReport ? null : _runReport,
+            icon: _busyReport
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.mail),
+            label: const Text('Demo：立即產生晚報'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _busyRing ? null : _runRing,
+            icon: _busyRing
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.phone_in_talk),
+            label: const Text('Demo：請小幫手打給長輩'),
+          ),
+        ]),
       );
 }
 
@@ -216,16 +240,16 @@ class _TrendTab extends ConsumerWidget {
       error: (e, _) => Center(child: Text('載入失敗：$e')),
       data: (pts) => ListView(padding: const EdgeInsets.all(16), children: [
         Text('7 天睡眠時數', style: Theme.of(context).textTheme.titleMedium),
-        _chart(pts, (p) => p.sleepHours, 0, 10, Colors.indigo),
+        _chart(pts, (p) => p.sleepHours, 0, 10, Colors.indigo, null),
         const SizedBox(height: 24),
-        Text('7 天心情分數（1~5）', style: Theme.of(context).textTheme.titleMedium),
-        _chart(pts, (p) => p.mood, 0, 5, Colors.orange),
+        Text('近 7 天整體狀態', style: Theme.of(context).textTheme.titleMedium),
+        _chart(pts, (p) => _overallScore(p.overall), 0, 2, Colors.teal, _overallEmoji),
       ]),
     );
   }
 
   Widget _chart(List<TrendPoint> pts, double Function(TrendPoint) y, double minY, double maxY,
-      Color color) {
+      Color color, String Function(int)? leftLabel) {
     return SizedBox(
       height: 200,
       child: Padding(
@@ -238,7 +262,20 @@ class _TrendTab extends ConsumerWidget {
           titlesData: FlTitlesData(
             topTitles: const AxisTitles(),
             rightTitles: const AxisTitles(),
-            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 32)),
+            leftTitles: AxisTitles(
+              sideTitles: leftLabel == null
+                  ? const SideTitles(showTitles: true, reservedSize: 32)
+                  : SideTitles(
+                      showTitles: true,
+                      reservedSize: 40,
+                      interval: 1,
+                      getTitlesWidget: (v, _) {
+                        final i = v.toInt();
+                        if (i != v || i < minY || i > maxY) return const SizedBox();
+                        return Text(leftLabel(i), style: const TextStyle(fontSize: 14));
+                      },
+                    ),
+            ),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
@@ -266,3 +303,15 @@ class _TrendTab extends ConsumerWidget {
     );
   }
 }
+
+double _overallScore(Overall o) => switch (o) {
+      Overall.alert => 0,
+      Overall.watch => 1,
+      Overall.normal => 2,
+    };
+
+String _overallEmoji(int score) => switch (score) {
+      0 => '🔴',
+      1 => '🟡',
+      _ => '🟢',
+    };

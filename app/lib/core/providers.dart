@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../firebase_options.dart';
 import 'models.dart';
 import 'repository.dart';
 
@@ -25,7 +26,8 @@ class RoleNotifier extends Notifier<Role?> {
 
 final roleProvider = NotifierProvider<RoleNotifier, Role?>(RoleNotifier.new);
 
-final repositoryProvider = Provider<FamilyRepository>((_) => DemoRepository());
+final repositoryProvider = Provider<FamilyRepository>(
+    (_) => DefaultFirebaseOptions.isConfigured ? FirestoreRepository() : DemoRepository());
 
 final logsProvider = StreamProvider((ref) => ref.watch(repositoryProvider).todayLogs());
 final alertsProvider = StreamProvider((ref) => ref.watch(repositoryProvider).todayAlerts());

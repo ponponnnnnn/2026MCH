@@ -40,8 +40,9 @@ class DailyReport {
 class TrendPoint {
   final DateTime day;
   final double sleepHours;
-  final double mood; // 1~5
-  const TrendPoint(this.day, this.sleepHours, this.mood);
+  // 當天沒有 dailyReports 時預設 normal，避免把「沒資料」誤顯示成警示
+  final Overall overall;
+  const TrendPoint(this.day, this.sleepHours, this.overall);
 }
 
 class TranscriptLine {

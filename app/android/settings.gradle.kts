@@ -21,6 +21,9 @@ plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
     id("com.android.application") version "9.1.0" apply false
     id("org.jetbrains.kotlin.android") version "2.4.0" apply false
+    // 版本宣告在這裡，讓 app/build.gradle.kts 能在 google-services.json 存在時
+    // 用 apply(plugin = ...) 條件式套用；json 還沒放的話完全不會用到這個 plugin。
+    id("com.google.gms.google-services") version "4.5.0" apply false
 }
 
 include(":app")

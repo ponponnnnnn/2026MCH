@@ -4,8 +4,11 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../core/call_client.dart';
 import '../../core/config.dart';
+import '../../core/incoming_call.dart';
 import '../../core/models.dart';
 import '../../core/providers.dart';
+import '../../core/push_registration.dart';
+import '../../firebase_options.dart';
 
 class ElderScreen extends ConsumerStatefulWidget {
   const ElderScreen({super.key});
@@ -52,6 +55,13 @@ class _ElderScreenState extends ConsumerState<ElderScreen> {
       },
       onError: (m) => mounted ? setState(() => _error = m) : null,
     );
+    // 只有在 Firebase 已設定時才碰任何 Firebase API（FCM 推播、來電）
+    if (DefaultFirebaseOptions.isConfigured) {
+      ensureDeviceRegistered();
+      startIncomingCallListening(onAccept: (attemptId) {
+        if (mounted) _start(attemptId: attemptId);
+      });
+    }
   }
 
   @override
@@ -67,7 +77,8 @@ class _ElderScreenState extends ConsumerState<ElderScreen> {
       _state == CallState.listening ||
       _state == CallState.speaking;
 
-  Future<void> _start() async {
+  Future<void> _start({String? attemptId}) async {
+    if (_inCall) return; // 來電接聽時若已經在通話中就不重複撥打
     setState(() {
       _error = null;
       _lines.clear();
@@ -76,7 +87,7 @@ class _ElderScreenState extends ConsumerState<ElderScreen> {
       setState(() => _error = '需要允許麥克風，小幫手才聽得到您說話');
       return;
     }
-    await _client.start();
+    await _client.start(attemptId: attemptId);
   }
 
   @override

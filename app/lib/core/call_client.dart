@@ -39,7 +39,10 @@ class CallClient {
   /// 首次會跳出系統麥克風授權視窗
   Future<bool> requestMicPermission() => _recorder.hasPermission();
 
-  Future<void> start() async {
+  /// [attemptId]：從「小幫手來電」接聽進來的通話要帶上，讓後端能把這通對應到
+  /// 該次 /demo/ring 的 attempt（見 incoming_call.dart）。一般長輩主動按按鈕
+  /// 撥打時不需要帶。
+  Future<void> start({String? attemptId}) async {
     if (_active) return;
     _active = true;
     onState(CallState.connecting);
@@ -56,7 +59,10 @@ class CallClient {
 
       await _setupPlayer();
 
-      final uri = Uri.parse('${AppConfig.backendWs}?elderId=${AppConfig.elderId}');
+      final query = attemptId == null
+          ? 'elderId=${AppConfig.elderId}'
+          : 'elderId=${AppConfig.elderId}&attemptId=$attemptId';
+      final uri = Uri.parse('${AppConfig.backendWs}?$query');
       final ws = WebSocketChannel.connect(uri);
       _ws = ws;
       await ws.ready;

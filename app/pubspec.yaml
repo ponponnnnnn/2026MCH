@@ -44,6 +44,10 @@ dependencies:
   shared_preferences: ^2.5.5
   intl: ^0.20.3
   http: ^1.6.0
+  firebase_core: ^4.15.0
+  cloud_firestore: ^6.10.0
+  firebase_messaging: ^16.7.0
+  flutter_callkit_incoming: ^3.1.5
 
 dev_dependencies:
   flutter_test:
