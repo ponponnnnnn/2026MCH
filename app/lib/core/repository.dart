@@ -13,6 +13,9 @@ abstract class FamilyRepository {
   Stream<List<HealthLog>> todayLogs();
   Stream<List<AlertItem>> todayAlerts();
   Stream<String> todaySummary();
+
+  /// 今日晚報的整體燈號；尚未產生晚報或欄位不合法時為 null
+  Stream<Overall?> todayReportOverall();
   Future<List<DailyReport>> reports();
   Future<List<TrendPoint>> trend7Days();
 
@@ -73,6 +76,9 @@ class DemoRepository implements FamilyRepository {
   @override
   Stream<String> todaySummary() =>
       Stream.value('今天聊了 3 次、約 12 分鐘。聊到孫子很開心；下午提到頭暈，已記錄並提醒休息。');
+
+  @override
+  Stream<Overall?> todayReportOverall() => Stream.value(null);
 
   @override
   Future<List<DailyReport>> reports() async => List.generate(5, (i) {
@@ -271,6 +277,14 @@ class FirestoreRepository implements FamilyRepository {
       },
     );
     return controller.stream;
+  }
+
+  @override
+  Stream<Overall?> todayReportOverall() {
+    return _col('dailyReports').doc(_taipeiDateStr(0)).snapshots().map((snap) {
+      final d = snap.data();
+      return d == null ? null : _overall(d);
+    });
   }
 
   DailyReport? _toDailyReport(String date, Map<String, dynamic> d) {

@@ -96,7 +96,7 @@ class _TodayTab extends ConsumerWidget {
           final l = latest(e.key);
           final v = l == null
               ? '尚無紀錄'
-              : e.key == 'sleep'
+              : e.key == 'sleep' && num.tryParse(l.value.trim()) != null
                   ? '約 ${l.value} 小時'
                   : l.value;
           return Card(
@@ -136,6 +136,10 @@ class _DemoToolsState extends ConsumerState<_DemoTools> {
     setState(() => _busyReport = true);
     final ok = await ref.read(repositoryProvider).triggerDailyReport();
     if (!mounted) return;
+    if (ok) {
+      ref.invalidate(reportsProvider);
+      ref.invalidate(trendProvider);
+    }
     setState(() => _busyReport = false);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(ok ? '晚報已產生並寄出，請查看信箱' : '產生失敗，請確認後端已啟動且 DEMO_MODE=1')));

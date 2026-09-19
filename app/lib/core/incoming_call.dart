@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_callkit_incoming/entities/entities.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 
@@ -52,8 +53,9 @@ Future<void> _showIncomingCall(_CallPayload payload) async {
         textDecline: '拒接',
       ),
     ));
-  } catch (_) {
-    // 顯示來電畫面失敗（例如權限被拒）不能讓 App 當掉，安靜略過
+  } catch (e) {
+    // 顯示來電畫面失敗（例如權限被拒）不能讓 App 當掉，但要留紀錄才查得到
+    debugPrint('[incoming_call] 顯示來電畫面失敗：$e');
   }
 }
 

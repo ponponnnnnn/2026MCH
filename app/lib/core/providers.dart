@@ -32,13 +32,20 @@ final repositoryProvider = Provider<FamilyRepository>(
 final logsProvider = StreamProvider((ref) => ref.watch(repositoryProvider).todayLogs());
 final alertsProvider = StreamProvider((ref) => ref.watch(repositoryProvider).todayAlerts());
 final summaryProvider = StreamProvider((ref) => ref.watch(repositoryProvider).todaySummary());
+final todayReportOverallProvider =
+    StreamProvider((ref) => ref.watch(repositoryProvider).todayReportOverall());
 final reportsProvider = FutureProvider((ref) => ref.watch(repositoryProvider).reports());
 final trendProvider = FutureProvider((ref) => ref.watch(repositoryProvider).trend7Days());
 
-/// 由今日 alerts 推算整體燈號
+/// 由今日 alerts 與今日晚報 overall 推算整體燈號，取兩者較嚴重者
+/// （Overall 宣告順序 normal < watch < alert，嚴重度可直接用 index 比較）
 final overallProvider = Provider<Overall>((ref) {
   final alerts = ref.watch(alertsProvider).value ?? const [];
-  if (alerts.any((a) => a.level == AlertLevel.red)) return Overall.alert;
-  if (alerts.isNotEmpty) return Overall.watch;
-  return Overall.normal;
+  final fromAlerts = alerts.any((a) => a.level == AlertLevel.red)
+      ? Overall.alert
+      : alerts.isNotEmpty
+          ? Overall.watch
+          : Overall.normal;
+  final fromReport = ref.watch(todayReportOverallProvider).value ?? Overall.normal;
+  return fromAlerts.index >= fromReport.index ? fromAlerts : fromReport;
 });
