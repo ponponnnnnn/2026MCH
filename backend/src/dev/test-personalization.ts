@@ -1,9 +1,9 @@
 /**
  * 獨立測試個人化語域邏輯，完全不呼叫 Gemini API、不需要 GEMINI_API_KEY。
- * 只匯入 profile.ts 和 prompt.ts，跳過 live.ts（才會用到 Live API 連線的地方）。
+ * 只匯入 data/profile.ts 和 prompt/index.ts，跳過 call/live.ts（才會用到 Live API 連線的地方）。
  *
  * 執行方式（在 backend 資料夾下）：
- *   npx tsx src/test-personalization.ts
+ *   npx tsx src/dev/test-personalization.ts
  *
  * 不需要先設定 .env，這支腳本自己會用 DEV_NO_DB 模式，不會碰 Firestore。
  */
@@ -14,8 +14,10 @@ import {
   type ElderProfile,
   registerClarification,
   personalizationHint,
-} from "./profile.js";
-import { buildSystemPrompt, type ConversationContext } from "./prompt.js";
+} from "../data/profile.js";
+import { buildSystemPrompt } from "../prompt/index.js";
+import { EMPTY_FACTS } from "../data/facts.js";
+import type { Briefing } from "../prompt/render-briefing.js";
 
 function freshProfile(overrides: Partial<ElderProfile> = {}): ElderProfile {
   return {
@@ -32,25 +34,33 @@ function freshProfile(overrides: Partial<ElderProfile> = {}): ElderProfile {
   };
 }
 
-const demoContext: ConversationContext = {
-  timeOfDayLabel: "下午",
-  mealHint: "如果要問用餐，適合問午餐吃得如何，不要問早餐。",
-  todaySummary: "",
-};
+function demoBriefing(elderName: string): Briefing {
+  return {
+    elderName,
+    isFirstCall: false,
+    timeOfDayLabel: "下午",
+    mealHint: "如果要問用餐，適合問午餐吃得如何，不要問早餐。",
+    todayLoggedSlots: [],
+    topicHooks: [],
+    slotPriority: [],
+    factTargets: [],
+    knownFacts: EMPTY_FACTS,
+  };
+}
 
 console.log("========== 情境一：退休水電師傅 ==========");
 const p1 = freshProfile({
   occupationContext: "曾任水電師傅",
   metaphorScores: { "機械保養、電路接觸不良類比": 2 },
 });
-console.log(buildSystemPrompt("陳先生", p1, demoContext));
+console.log(buildSystemPrompt(demoBriefing("陳先生"), p1));
 
 console.log("\n========== 情境二：退休國小老師 ==========");
 const p2 = freshProfile({
   occupationContext: "退休國小老師",
   metaphorScores: { "學生複習功課類比": 2 },
 });
-console.log(buildSystemPrompt("林女士", p2, demoContext));
+console.log(buildSystemPrompt(demoBriefing("林女士"), p2));
 
 console.log("\n========== 情境三：模擬連續追問，語彙複雜度應自動調降 ==========");
 const p3 = freshProfile({ vocabLevel: "normal" });

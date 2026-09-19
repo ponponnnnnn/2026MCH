@@ -20,3 +20,10 @@ export function taipeiDate(d = new Date()): string {
 export function taipeiDayStart(dateStr: string): Date {
   return new Date(`${dateStr}T00:00:00+08:00`);
 }
+
+const ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+
+/** 白名單格式檢查：外部輸入（elderId、attemptId）進入 Firestore 文件路徑前先驗證 */
+export function isValidId(value: unknown): value is string {
+  return typeof value === "string" && ID_PATTERN.test(value);
+}

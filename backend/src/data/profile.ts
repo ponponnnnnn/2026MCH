@@ -1,4 +1,4 @@
-import { config } from "./config.js";
+import { config } from "../config.js";
 import { elderRef } from "./firestore.js";
 
 /** 個人化語域 Profile（v2_mvp.md §6，存在 elders/{elderId} 文件裡，與 name/medications 同層級） */

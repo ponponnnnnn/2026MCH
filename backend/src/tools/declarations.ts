@@ -1,8 +1,7 @@
 import { Type, type FunctionDeclaration } from "@google/genai";
-import { config } from "./config.js";
-import { elderRef, Timestamp, type AlertLevel, type HealthType } from "./firestore.js";
-import { notifyFamily } from "./notify.js";
-import { registerClarification, registerMetaphorFeedback, type ElderProfile } from "./profile.js";
+import { CONCERN_CATEGORIES, FACT_FIELDS } from "../data/facts.js";
+
+const FACT_FIELD_KEYS = Object.keys(FACT_FIELDS);
 
 /** 宣告給 Gemini Live 的工具（規格見 v2_mvp.md §7，含 F11 個人化語域四訊號） */
 export const toolDeclarations: FunctionDeclaration[] = [
@@ -66,76 +65,44 @@ export const toolDeclarations: FunctionDeclaration[] = [
       required: ["category", "understood"],
     },
   },
+  {
+    name: "mark_topic_hook",
+    description:
+      "長輩自己提到的人名、嗜好、事件、計畫時呼叫，記下來供下次通話開場當話題。不要口頭告知長輩你記了這個。",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        entity: { type: Type.STRING, description: "掛勾的主體，例如人名、嗜好、事件" },
+        context: { type: Type.STRING, description: "簡短補充，例如發生的事、細節" },
+      },
+      required: ["entity", "context"],
+    },
+  },
+  {
+    name: "flag_uncovered_concern",
+    description:
+      "聽到健康項目清單以外的擔憂時呼叫：可疑電話或詐騙、用火用瓦斯等居家安全問題、出門迷路走失、太熱太冷卻不開冷暖氣、拒絕看護或居家長照服務、家裡堆積髒亂沒整理。記下類別、一句摘要、長輩原話。不要口頭告知長輩你記了這個，不要判斷是不是詐騙，不要說教。",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        category: { type: Type.STRING, enum: CONCERN_CATEGORIES, description: "擔憂類別" },
+        summary: { type: Type.STRING, description: "一句話摘要" },
+        quote: { type: Type.STRING, description: "長輩原話" },
+      },
+      required: ["category", "summary", "quote"],
+    },
+  },
+  {
+    name: "remember_fact",
+    description:
+      "長輩提到稱謂、家人、興趣、作息、慢性病、自己說在吃的藥等基本資料時呼叫，記下來供之後通話個人化使用。不要口頭告知長輩你記了這個。",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        field: { type: Type.STRING, enum: FACT_FIELD_KEYS, description: "要記錄的欄位" },
+        value: { type: Type.STRING, description: "內容" },
+      },
+      required: ["field", "value"],
+    },
+  },
 ];
-
-export interface ToolContext {
-  elderId: string;
-  sessionId: string;
-  /** F11：這通電話的個人化 Profile，原地修改，session 結束時由 live.ts 統一寫回 Firestore */
-  profile: ElderProfile;
-}
-
-/** 執行工具，回傳給 Gemini 的 response 物件 */
-export async function runTool(
-  name: string,
-  args: Record<string, unknown>,
-  ctx: ToolContext,
-): Promise<Record<string, unknown>> {
-  // 這兩個工具只操作記憶體內的 profile，不需要 Firestore，
-  // 放在 DEV_NO_DB 判斷之前，開發個人化邏輯不需要等 Firestore 接好
-  if (name === "register_clarification") {
-    registerClarification(ctx.profile, typeof args.topic === "string" ? args.topic : undefined);
-    return { ok: true };
-  }
-  if (name === "register_metaphor_result") {
-    registerMetaphorFeedback(ctx.profile, String(args.category ?? "未分類"), Boolean(args.understood));
-    return { ok: true };
-  }
-
-  if (config.devNoDb) {
-    console.log(`[tool:${name}] (DEV_NO_DB)`, JSON.stringify(args));
-    return name === "raise_alert"
-      ? { ok: true, note: "已通知家人，請安撫長輩" }
-      : { ok: true };
-  }
-  const elder = elderRef(ctx.elderId);
-
-  if (name === "log_health") {
-    await elder.collection("healthLogs").add({
-      ts: Timestamp.now(),
-      type: (args.type as HealthType) ?? "other",
-      value: String(args.value ?? ""),
-      note: String(args.note ?? ""),
-      sessionId: ctx.sessionId,
-    });
-    return { ok: true };
-  }
-
-  if (name === "raise_alert") {
-    const level = (args.level as AlertLevel) ?? "yellow";
-    const reason = String(args.reason ?? "");
-    const quote = String(args.quote ?? "");
-    const ref = await elder.collection("alerts").add({
-      ts: Timestamp.now(),
-      level,
-      reason,
-      sourceQuote: quote,
-      notified: false,
-      sessionId: ctx.sessionId,
-    });
-    // 只有紅色即時通報；黃色留待晚報（v2_mvp.md F5b）
-    if (level === "red") {
-      const elderDoc = await elder.get();
-      const name = elderDoc.data()?.name ?? "長輩";
-      const sent = await notifyFamily(
-        ctx.elderId,
-        `🚨 緊急通報｜${name}：${reason}`,
-        `🚨 緊急通報｜${name}\n${reason}${quote ? `\n原話：「${quote}」` : ""}\n\n請盡快聯絡長輩確認狀況。`,
-      );
-      await ref.update({ notified: sent });
-    }
-    return { ok: true, note: "已通知家人，請安撫長輩" };
-  }
-
-  return { ok: false, error: `unknown tool: ${name}` };
-}

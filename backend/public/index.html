@@ -23,7 +23,7 @@ const $ = (id) => document.getElementById(id);
 let ws, ctx, mic, node, playHead = 0, sources = [], active = false;
 
 // Demo 用：從網址帶 elderId，例如 ?elderId=demo-plumber 或 ?elderId=demo-teacher
-// DEV_NO_DB=1 模式下，這兩個 id 會對到 profile.ts 裡的 DEMO_PROFILES 假資料
+// DEV_NO_DB=1 模式下，這兩個 id 會對到 src/data/profile.ts 裡的 DEMO_PROFILES 假資料
 const elderId = new URLSearchParams(location.search).get('elderId') || '';
 if (elderId) {
   $('status').textContent = `尚未連線（長輩：${elderId}）`;

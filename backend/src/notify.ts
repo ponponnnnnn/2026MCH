@@ -1,6 +1,6 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { config } from "./config.js";
-import { elderRef } from "./firestore.js";
+import { elderRef } from "./data/firestore.js";
 
 let transporter: Transporter | undefined;
 

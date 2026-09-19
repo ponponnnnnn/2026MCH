@@ -1,7 +1,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { config } from "./config.js";
-import { elderRef, taipeiDate, taipeiDayStart, Timestamp } from "./firestore.js";
-import { notifyFamily } from "./notify.js";
+import { config } from "../config.js";
+import { elderRef, taipeiDate, taipeiDayStart, Timestamp } from "../data/firestore.js";
+import { getTodayAttempts } from "../data/call-attempts.js";
+import { notifyFamily } from "../notify.js";
 
 const ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
 
@@ -79,6 +80,7 @@ function buildPlainText(
   report: ReportJson,
   sessionCount: number,
   minutes: number,
+  calls: { rang: number; answered: number; missed: number },
 ) {
   const OVERALL_EMOJI = { normal: "🟢", watch: "🟡", alert: "🔴" } as const;
   const lines = [
@@ -91,6 +93,7 @@ function buildPlainText(
     `🩹 不適：${report.pain}`,
     ...(report.events.length ? [`⚠️ 異常：${report.events.join("；")}`] : []),
     `🗣 互動：共 ${sessionCount} 次、約 ${minutes} 分鐘`,
+    ...(calls.rang > 0 ? [`📞 主動通話：響鈴 ${calls.rang} 次、接聽 ${calls.answered} 次、未接 ${calls.missed} 次`] : []),
     ...(report.summary ? [`📝 ${report.summary}`] : []),
     ...(report.followUps.length ? [`👉 建議：${report.followUps.join("；")}`] : []),
     ...(config.dashboardUrl ? [`🔗 詳細儀表板：${config.dashboardUrl}`] : []),
@@ -196,24 +199,33 @@ export async function generateDailyReport(elderId: string, dateStr = taipeiDate(
   const start = Timestamp.fromDate(taipeiDayStart(dateStr));
   const end = Timestamp.fromMillis(start.toMillis() + 24 * 3600 * 1000);
 
-  const [elderDoc, logsSnap, alertsSnap, sessionsSnap] = await Promise.all([
+  const [elderDoc, logsSnap, alertsSnap, sessionsSnap, concernsSnap, attempts] = await Promise.all([
     elder.get(),
     elder.collection("healthLogs").where("ts", ">=", start).where("ts", "<", end).orderBy("ts").get(),
     elder.collection("alerts").where("ts", ">=", start).where("ts", "<", end).orderBy("ts").get(),
     elder.collection("sessions").where("startedAt", ">=", start).where("startedAt", "<", end).get(),
+    elder.collection("concerns").where("ts", ">=", start).where("ts", "<", end).orderBy("ts").get(),
+    getTodayAttempts(elderId, dateStr),
   ]);
 
   const elderName = (elderDoc.data()?.name as string | undefined) ?? "長輩";
   const logs = logsSnap.docs.map((d) => d.data());
   const alerts = alertsSnap.docs.map((d) => d.data());
   const sessions = sessionsSnap.docs.map((d) => d.data());
+  const concerns = concernsSnap.docs.map((d) => d.data());
 
   const minutes = Math.round(
     sessions.reduce((sum, s) => sum + (s.endedAt ? s.endedAt.toMillis() - s.startedAt.toMillis() : 0), 0) / 60000,
   );
 
+  const calls = {
+    rang: attempts.length,
+    answered: attempts.filter((a) => a.status === "answered").length,
+    missed: attempts.filter((a) => a.status === "missed").length,
+  };
+
   let report: ReportJson;
-  if (sessions.length === 0 && logs.length === 0 && alerts.length === 0) {
+  if (sessions.length === 0 && logs.length === 0 && alerts.length === 0 && concerns.length === 0) {
     report = {
       overall: "watch",
       medication: "無資料",
@@ -231,11 +243,15 @@ export async function generateDailyReport(elderId: string, dateStr = taipeiDate(
       healthLogs: logs.map((l) => ({ time: hhmm(l.ts), type: l.type, value: l.value, note: l.note })),
       alerts: alerts.map((a) => ({ time: hhmm(a.ts), level: a.level, reason: a.reason, quote: a.sourceQuote })),
       conversations: sessions.map((s) => s.transcript ?? []),
+      // 健康項目清單以外、模型主動聽到的擔憂（詐騙、居家安全、走失等），來源見 tools/handlers.ts flag_uncovered_concern
+      concerns: concerns.map((c) => ({ time: hhmm(c.ts), category: c.category, summary: c.summary, quote: c.quote })),
+      calls,
     };
     const res = await generateContentWithRetry({
       model: config.reportModel,
       contents: `你是長照家屬通報助手。根據以下長輩當日資料，用繁體中文產生給家屬的簡潔日報。
-規則：只根據資料，不要推測或診斷；有 red 警報則 overall 必為 alert；有 yellow 警報或關鍵項目缺漏則至少 watch。
+規則：只根據資料，不要推測或診斷；有 red 警報則 overall 必為 alert；有 yellow 警報或關鍵項目缺漏則至少 watch；
+concerns 是健康項目以外的擔憂，請視情況整理進 events 或 followUps。
 
 ${JSON.stringify(material)}`,
       config: { responseMimeType: "application/json", responseSchema: reportSchema },
@@ -243,7 +259,15 @@ ${JSON.stringify(material)}`,
     report = JSON.parse(res.text ?? "{}") as ReportJson;
   }
 
-  const text = buildPlainText(elderName, dateStr, report, sessions.length, minutes);
+  // 主動響鈴全部未接、且今天完全沒有任何 session：不管 overall 是模型判的還是上面的預設值，都至少要 watch，並提醒家屬打電話確認
+  if (calls.rang > 0 && calls.answered === 0 && sessions.length === 0) {
+    if (report.overall === "normal") report.overall = "watch";
+    if (!report.followUps.some((f) => f.includes("打電話"))) {
+      report.followUps.push("建議打電話確認長輩狀況（今天主動撥打的提醒電話都沒有接聽）");
+    }
+  }
+
+  const text = buildPlainText(elderName, dateStr, report, sessions.length, minutes, calls);
   const html = buildHtml(elderName, dateStr, report, sessions.length, minutes);
 
   const sent = await notifyFamily(
