@@ -5,6 +5,7 @@ import { config } from "./config.js";
 import { elderRef, Timestamp } from "./firestore.js";
 import { buildSystemPrompt } from "./prompt.js";
 import { runTool, toolDeclarations } from "./tools.js";
+import { getProfile, saveProfile, registerTurn } from "./profile.js";
 
 const ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
 
@@ -35,6 +36,10 @@ export async function handleCall(ws: WebSocket, elderId: string) {
     await sessionRef.set({ startedAt: Timestamp.now() });
   }
 
+  // F11：載入這位長輩的個人化 Profile。DEV_NO_DB 模式下 getProfile 內部會直接回傳預設值，
+  // 所以個人化邏輯不需要等 Firestore 接好就能開發、測試。
+  const profile = await getProfile(elderId);
+
   const transcript: TranscriptLine[] = [];
   const pushLine = (role: TranscriptLine["role"], text: string) => {
     const last = transcript[transcript.length - 1];
@@ -64,14 +69,19 @@ export async function handleCall(ws: WebSocket, elderId: string) {
       pushLine("agent", sc.outputTranscription.text);
       sendJson({ type: "transcript", role: "agent", text: sc.outputTranscription.text });
     }
-    if (sc?.turnComplete) sendJson({ type: "turnComplete" });
+    if (sc?.turnComplete) {
+      sendJson({ type: "turnComplete" });
+      // F11：一輪對話正常結束就累計輪數；追問發生時 register_clarification 工具會自己累計，
+      // 這裡不重複加，避免同一輪被算兩次。
+      registerTurn(profile);
+    }
 
     if (msg.toolCall?.functionCalls) {
       const functionResponses = await Promise.all(
         msg.toolCall.functionCalls.map(async (fc) => {
           let response: Record<string, unknown>;
           try {
-            response = await runTool(fc.name ?? "", fc.args ?? {}, { elderId, sessionId });
+            response = await runTool(fc.name ?? "", fc.args ?? {}, { elderId, sessionId, profile });
           } catch (err) {
             console.error(`[tool:${fc.name}]`, err);
             response = { ok: false, error: String(err) };
@@ -89,9 +99,13 @@ export async function handleCall(ws: WebSocket, elderId: string) {
     try {
       session?.close();
     } catch {}
-    await sessionRef
-      ?.update({ endedAt: Timestamp.now(), transcript })
-      .catch((e) => console.error("[session] 收尾寫入失敗", e));
+    await Promise.all([
+      sessionRef
+        ?.update({ endedAt: Timestamp.now(), transcript })
+        .catch((e) => console.error("[session] 收尾寫入失敗", e)),
+      // F11：把這通電話裡累積的 Profile 變化（追問次數、語彙等級調整）寫回 Firestore
+      saveProfile(elderId, profile).catch((e) => console.error("[profile] 收尾寫入失敗", e)),
+    ]);
     if (ws.readyState === ws.OPEN) ws.close();
   };
 
@@ -100,7 +114,7 @@ export async function handleCall(ws: WebSocket, elderId: string) {
       model: config.liveModel,
       config: {
         responseModalities: [Modality.AUDIO],
-        systemInstruction: buildSystemPrompt(elderName),
+        systemInstruction: buildSystemPrompt(elderName, profile),
         tools: [{ functionDeclarations: toolDeclarations }],
         inputAudioTranscription: {},
         outputAudioTranscription: {},

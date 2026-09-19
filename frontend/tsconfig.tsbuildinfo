@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/types.ts","./src/vite-env.d.ts","./src/components/alertlist.tsx","./src/components/dailysummary.tsx","./src/components/healthcards.tsx","./src/components/trendchart.tsx","./src/hooks/useelderdashboard.ts","./src/lib/firebase.ts"],"version":"5.9.3"}

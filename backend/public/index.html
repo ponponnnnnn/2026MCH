@@ -15,12 +15,19 @@
 </head>
 <body>
 <h2>跟小幫手聊聊</h2>
-<button id="btn">開始通話</button>
 <div id="status">尚未連線</div>
+<button id="btn">開始通話</button>
 <div id="log"></div>
 <script>
 const $ = (id) => document.getElementById(id);
 let ws, ctx, mic, node, playHead = 0, sources = [], active = false;
+
+// Demo 用：從網址帶 elderId，例如 ?elderId=demo-plumber 或 ?elderId=demo-teacher
+// DEV_NO_DB=1 模式下，這兩個 id 會對到 profile.ts 裡的 DEMO_PROFILES 假資料
+const elderId = new URLSearchParams(location.search).get('elderId') || '';
+if (elderId) {
+  $('status').textContent = `尚未連線（長輩：${elderId}）`;
+}
 
 const workletSrc = `
 class Cap extends AudioWorkletProcessor {
@@ -68,11 +75,12 @@ async function start(){
   ctx.createMediaStreamSource(mic).connect(node);
 
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(`${proto}://${location.host}/ws`); ws.binaryType = 'arraybuffer';
+  const wsPath = elderId ? `/ws?elderId=${encodeURIComponent(elderId)}` : '/ws';
+  ws = new WebSocket(`${proto}://${location.host}${wsPath}`); ws.binaryType = 'arraybuffer';
   ws.onmessage = (e) => {
     if(e.data instanceof ArrayBuffer){ playPcm24k(e.data); return; }
     const m = JSON.parse(e.data);
-    if(m.type==='ready'){ $('status').textContent='通話中，請直接說話'; }
+    if(m.type==='ready'){ $('status').textContent = elderId ? `通話中（長輩：${elderId}），請直接說話` : '通話中，請直接說話'; }
     else if(m.type==='transcript'){ line(m.role, m.text); }
     else if(m.type==='interrupted'){ stopPlayback(); }
     else if(m.type==='error'){ $('status').textContent='錯誤：'+m.message; }
