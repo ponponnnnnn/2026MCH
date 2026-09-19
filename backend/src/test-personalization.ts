@@ -15,7 +15,7 @@ import {
   registerClarification,
   personalizationHint,
 } from "./profile.js";
-import { buildSystemPrompt } from "./prompt.js";
+import { buildSystemPrompt, type ConversationContext } from "./prompt.js";
 
 function freshProfile(overrides: Partial<ElderProfile> = {}): ElderProfile {
   return {
@@ -23,26 +23,34 @@ function freshProfile(overrides: Partial<ElderProfile> = {}): ElderProfile {
     preferredLanguage: "zh-TW",
     vocabLevel: "moderate",
     sentenceDensity: "moderate",
-    metaphorStyle: "",
     clarificationCount: 0,
     totalTurns: 0,
+    metaphorScores: {},
+    topicHistory: {},
+    paceLevel: "normal",
     ...overrides,
   };
 }
 
+const demoContext: ConversationContext = {
+  timeOfDayLabel: "下午",
+  mealHint: "如果要問用餐，適合問午餐吃得如何，不要問早餐。",
+  todaySummary: "",
+};
+
 console.log("========== 情境一：退休水電師傅 ==========");
 const p1 = freshProfile({
   occupationContext: "曾任水電師傅",
-  metaphorStyle: "像機器保養、電路接觸不良",
+  metaphorScores: { "機械保養、電路接觸不良類比": 2 },
 });
-console.log(buildSystemPrompt("陳先生", p1));
+console.log(buildSystemPrompt("陳先生", p1, demoContext));
 
 console.log("\n========== 情境二：退休國小老師 ==========");
 const p2 = freshProfile({
   occupationContext: "退休國小老師",
-  metaphorStyle: "像學生複習功課",
+  metaphorScores: { "學生複習功課類比": 2 },
 });
-console.log(buildSystemPrompt("林女士", p2));
+console.log(buildSystemPrompt("林女士", p2, demoContext));
 
 console.log("\n========== 情境三：模擬連續追問，語彙複雜度應自動調降 ==========");
 const p3 = freshProfile({ vocabLevel: "normal" });
