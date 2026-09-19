@@ -1,0 +1,141 @@
+import { GoogleGenAI, Modality, type LiveServerMessage, type Session } from "@google/genai";
+import type { DocumentReference } from "firebase-admin/firestore";
+import type { WebSocket } from "ws";
+import { config } from "./config.js";
+import { elderRef, Timestamp } from "./firestore.js";
+import { buildSystemPrompt } from "./prompt.js";
+import { runTool, toolDeclarations } from "./tools.js";
+
+const ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
+
+interface TranscriptLine {
+  role: "elder" | "agent";
+  text: string;
+}
+
+/**
+ * 一通語音對話 = 一條瀏覽器 WebSocket ↔ 一條 Gemini Live 連線。
+ *
+ * 瀏覽器 → 後端：
+ *   binary  16kHz / 16-bit / mono PCM（little-endian）麥克風音訊
+ *   text    JSON {"type":"end"} 結束通話
+ * 後端 → 瀏覽器：
+ *   binary  24kHz / 16-bit / mono PCM 模型語音
+ *   text    JSON {"type":"ready"|"interrupted"|"transcript"|"turnComplete"|"error", ...}
+ */
+export async function handleCall(ws: WebSocket, elderId: string) {
+  let elderName = "長輩";
+  let sessionId = `dev-${Date.now()}`;
+  let sessionRef: DocumentReference | undefined;
+  if (!config.devNoDb) {
+    const elder = elderRef(elderId);
+    elderName = ((await elder.get()).data()?.name as string | undefined) ?? "長輩";
+    sessionRef = elder.collection("sessions").doc();
+    sessionId = sessionRef.id;
+    await sessionRef.set({ startedAt: Timestamp.now() });
+  }
+
+  const transcript: TranscriptLine[] = [];
+  const pushLine = (role: TranscriptLine["role"], text: string) => {
+    const last = transcript[transcript.length - 1];
+    if (last && last.role === role) last.text += text;
+    else transcript.push({ role, text });
+  };
+  const sendJson = (obj: unknown) => ws.readyState === ws.OPEN && ws.send(JSON.stringify(obj));
+
+  let session: Session | undefined;
+  let closed = false;
+
+  const onMessage = async (msg: LiveServerMessage) => {
+    const sc = msg.serverContent;
+    if (sc?.modelTurn?.parts) {
+      for (const part of sc.modelTurn.parts) {
+        if (part.inlineData?.data && ws.readyState === ws.OPEN) {
+          ws.send(Buffer.from(part.inlineData.data, "base64"));
+        }
+      }
+    }
+    if (sc?.interrupted) sendJson({ type: "interrupted" });
+    if (sc?.inputTranscription?.text) {
+      pushLine("elder", sc.inputTranscription.text);
+      sendJson({ type: "transcript", role: "elder", text: sc.inputTranscription.text });
+    }
+    if (sc?.outputTranscription?.text) {
+      pushLine("agent", sc.outputTranscription.text);
+      sendJson({ type: "transcript", role: "agent", text: sc.outputTranscription.text });
+    }
+    if (sc?.turnComplete) sendJson({ type: "turnComplete" });
+
+    if (msg.toolCall?.functionCalls) {
+      const functionResponses = await Promise.all(
+        msg.toolCall.functionCalls.map(async (fc) => {
+          let response: Record<string, unknown>;
+          try {
+            response = await runTool(fc.name ?? "", fc.args ?? {}, { elderId, sessionId });
+          } catch (err) {
+            console.error(`[tool:${fc.name}]`, err);
+            response = { ok: false, error: String(err) };
+          }
+          return { id: fc.id, name: fc.name, response };
+        }),
+      );
+      session?.sendToolResponse({ functionResponses });
+    }
+  };
+
+  const finish = async () => {
+    if (closed) return;
+    closed = true;
+    try {
+      session?.close();
+    } catch {}
+    await sessionRef
+      ?.update({ endedAt: Timestamp.now(), transcript })
+      .catch((e) => console.error("[session] 收尾寫入失敗", e));
+    if (ws.readyState === ws.OPEN) ws.close();
+  };
+
+  try {
+    session = await ai.live.connect({
+      model: config.liveModel,
+      config: {
+        responseModalities: [Modality.AUDIO],
+        systemInstruction: buildSystemPrompt(elderName),
+        tools: [{ functionDeclarations: toolDeclarations }],
+        inputAudioTranscription: {},
+        outputAudioTranscription: {},
+      },
+      callbacks: {
+        onopen: () => sendJson({ type: "ready", sessionId }),
+        onmessage: (m) => void onMessage(m),
+        onerror: (e) => {
+          console.error("[live] error", e.message);
+          sendJson({ type: "error", message: "語音連線發生錯誤" });
+        },
+        onclose: () => void finish(),
+      },
+    });
+  } catch (err) {
+    console.error("[live] 連線失敗", err);
+    sendJson({ type: "error", message: "無法連線到語音服務" });
+    await finish();
+    return;
+  }
+
+  ws.on("message", (data, isBinary) => {
+    if (closed) return;
+    if (isBinary) {
+      const buf = data as Buffer;
+      session?.sendRealtimeInput({
+        audio: { data: buf.toString("base64"), mimeType: "audio/pcm;rate=16000" },
+      });
+      return;
+    }
+    try {
+      const ctrl = JSON.parse(data.toString());
+      if (ctrl.type === "end") void finish();
+    } catch {}
+  });
+  ws.on("close", () => void finish());
+  ws.on("error", () => void finish());
+}
