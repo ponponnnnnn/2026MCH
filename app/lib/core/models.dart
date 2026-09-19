@@ -44,9 +44,3 @@ class TrendPoint {
   final Overall overall;
   const TrendPoint(this.day, this.sleepHours, this.overall);
 }
-
-class TranscriptLine {
-  final bool isElder;
-  String text;
-  TranscriptLine(this.isElder, this.text);
-}

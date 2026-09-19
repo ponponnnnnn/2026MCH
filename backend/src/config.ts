@@ -15,6 +15,8 @@ export const config = {
   /** DEMO_MODE=1：開放免密鑰的 /demo/daily-report（僅 Demo 用，正式環境關閉） */
   demoMode: env.DEMO_MODE === "1",
   defaultElderId: env.DEFAULT_ELDER_ID ?? "demo",
+  /** DEBUG_DUMP_AUDIO=1：把送給 Gemini 的麥克風原始 PCM 存成 debug-audio/<session>.wav（僅診斷用） */
+  debugDumpAudio: env.DEBUG_DUMP_AUDIO === "1",
 };
 
 if (!config.geminiApiKey) {

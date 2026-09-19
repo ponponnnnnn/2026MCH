@@ -5,7 +5,6 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../core/call_client.dart';
 import '../../core/config.dart';
 import '../../core/incoming_call.dart';
-import '../../core/models.dart';
 import '../../core/providers.dart';
 import '../../core/push_registration.dart';
 import '../../firebase_options.dart';
@@ -20,11 +19,9 @@ class ElderScreen extends ConsumerStatefulWidget {
 class _ElderScreenState extends ConsumerState<ElderScreen> {
   late final CallClient _client;
   CallState _state = CallState.idle;
-  bool _captions = true;
   String? _error;
   double _level = 0;
-  final _lines = <TranscriptLine>[];
-  final _scroll = ScrollController();
+  DateTime _levelShownAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   @override
   void initState() {
@@ -37,21 +34,12 @@ class _ElderScreenState extends ConsumerState<ElderScreen> {
             ? WakelockPlus.disable()
             : WakelockPlus.enable();
       },
-      onTranscript: (isElder, text) {
-        if (!mounted) return;
-        setState(() {
-          if (_lines.isNotEmpty && _lines.last.isElder == isElder) {
-            _lines.last.text += text;
-          } else {
-            _lines.add(TranscriptLine(isElder, text));
-          }
-        });
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scroll.hasClients) _scroll.jumpTo(_scroll.position.maxScrollExtent);
-        });
-      },
       onLevel: (v) {
-        if (mounted) setState(() => _level = v);
+        // 麥克風每秒回報數十次，音量條每秒更新 4 次就夠，不必每包都重畫整個畫面
+        final now = DateTime.now();
+        if (!mounted || now.difference(_levelShownAt).inMilliseconds < 250) return;
+        _levelShownAt = now;
+        setState(() => _level = v);
       },
       onError: (m) => mounted ? setState(() => _error = m) : null,
     );
@@ -68,7 +56,6 @@ class _ElderScreenState extends ConsumerState<ElderScreen> {
   void dispose() {
     WakelockPlus.disable();
     _client.dispose();
-    _scroll.dispose();
     super.dispose();
   }
 
@@ -79,10 +66,7 @@ class _ElderScreenState extends ConsumerState<ElderScreen> {
 
   Future<void> _start({String? attemptId}) async {
     if (_inCall) return; // 來電接聽時若已經在通話中就不重複撥打
-    setState(() {
-      _error = null;
-      _lines.clear();
-    });
+    setState(() => _error = null);
     if (!await _client.requestMicPermission()) {
       setState(() => _error = '需要允許麥克風，小幫手才聽得到您說話');
       return;
@@ -103,12 +87,6 @@ class _ElderScreenState extends ConsumerState<ElderScreen> {
       appBar: AppBar(
         title: Text('${AppConfig.elderName}，您好', style: const TextStyle(fontSize: 24)),
         actions: [
-          IconButton(
-            tooltip: '字幕',
-            iconSize: 32,
-            icon: Icon(_captions ? Icons.closed_caption : Icons.closed_caption_disabled),
-            onPressed: () => setState(() => _captions = !_captions),
-          ),
           if (!_inCall)
             IconButton(
               tooltip: '切換身分',
@@ -120,32 +98,7 @@ class _ElderScreenState extends ConsumerState<ElderScreen> {
       ),
       body: SafeArea(
         child: Column(children: [
-          if (_captions)
-            Expanded(
-              flex: 3,
-              child: ListView.builder(
-                controller: _scroll,
-                padding: const EdgeInsets.all(16),
-                itemCount: _lines.length,
-                itemBuilder: (_, i) {
-                  final l = _lines[i];
-                  return Align(
-                    alignment: l.isElder ? Alignment.centerRight : Alignment.centerLeft,
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: l.isElder ? const Color(0xFFFFE6CC) : const Color(0xFFDDF1EC),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Text(l.text, style: const TextStyle(fontSize: 26, height: 1.4)),
-                    ),
-                  );
-                },
-              ),
-            )
-          else
-            const Spacer(flex: 2),
+          const Spacer(flex: 2),
           if (_inCall)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),

@@ -1,13 +1,17 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:audio_session/audio_session.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_pcm_sound/flutter_pcm_sound.dart';
 import 'package:record/record.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'config.dart';
+import 'mic_pacer.dart';
 
 enum CallState { idle, connecting, listening, speaking, error }
 
@@ -16,13 +20,11 @@ enum CallState { idle, connecting, listening, speaking, error }
 class CallClient {
   CallClient({
     required this.onState,
-    required this.onTranscript,
     required this.onError,
     this.onLevel,
   });
 
   final void Function(CallState) onState;
-  final void Function(bool isElder, String text) onTranscript;
   final void Function(String message) onError;
 
   /// 收音診斷：每個音訊區塊的峰值（0~1），用來確認麥克風有沒有收到聲音
@@ -32,9 +34,24 @@ class CallClient {
   WebSocketChannel? _ws;
   StreamSubscription? _wsSub, _micSub;
   bool _active = false;
-  Timer? _speakingTimer;
 
   static const _playRate = 24000;
+  Future<void>? _teardown;
+  CallState _state = CallState.idle;
+
+  /// 播放排隊：Gemini 送音訊比實際播放快，全部直接餵給原生播放器的話，長輩插話時
+  /// 原生緩衝裡還有好幾秒停不下來，只能整個拆掉重建——而通話中重建 AudioTrack 會讓
+  /// 模擬器的畫面停止更新。改成自己排隊、原生端只保留約 0.25~0.5 秒，插話時清排隊即可。
+  static const _feedSlice = _playRate ~/ 4;
+  final Queue<Int16List> _playQueue = Queue();
+  int _headOffset = 0;
+  bool _nativeHungry = true;
+
+  void _setState(CallState s) {
+    if (s == _state) return;
+    _state = s;
+    onState(s);
+  }
 
   /// 首次會跳出系統麥克風授權視窗
   Future<bool> requestMicPermission() => _recorder.hasPermission();
@@ -44,17 +61,16 @@ class CallClient {
   /// 撥打時不需要帶。
   Future<void> start({String? attemptId}) async {
     if (_active) return;
+    await _teardown;
     _active = true;
-    onState(CallState.connecting);
+    _setState(CallState.connecting);
     try {
       final session = await AudioSession.instance;
-      // 語音通訊模式（非媒體播放）：讓系統把這段當成通話而非放音樂，
-      // 虛擬麥克風（模擬器 host audio passthrough）與回音消除才會用通話路徑處理，
-      // 而不是媒體路徑；v2_mvp.md 原始規劃就是這個模式，先前寫成 media 是退化。
+      // 用媒體路徑播放：voiceCommunication 在模擬器上會走窄頻通話路徑，小幫手的聲音會糊掉。
       await session.configure(AudioSessionConfiguration(
         androidAudioAttributes: const AndroidAudioAttributes(
-          contentType: AndroidAudioContentType.speech,
-          usage: AndroidAudioUsage.voiceCommunication,
+          contentType: AndroidAudioContentType.music,
+          usage: AndroidAudioUsage.media,
         ),
         androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
       ));
@@ -78,7 +94,44 @@ class CallClient {
 
   Future<void> _setupPlayer() async {
     await FlutterPcmSound.setup(sampleRate: _playRate, channelCount: 1);
-    await FlutterPcmSound.setFeedThreshold(_playRate ~/ 10);
+    await FlutterPcmSound.setFeedThreshold(_feedSlice);
+    FlutterPcmSound.setFeedCallback(_onNativeBufferLow);
+    _clearPlayQueue();
+  }
+
+  void _clearPlayQueue() {
+    _playQueue.clear();
+    _headOffset = 0;
+    _nativeHungry = true;
+  }
+
+  void _onNativeBufferLow(int remainingFrames) {
+    if (!_active) return;
+    if (remainingFrames == 0 && _playQueue.isEmpty) _setState(CallState.listening);
+    _pump();
+  }
+
+  void _pump() {
+    if (_playQueue.isEmpty) {
+      _nativeHungry = true;
+      return;
+    }
+    _nativeHungry = false;
+    final out = Int16List(_feedSlice);
+    var n = 0;
+    while (n < _feedSlice && _playQueue.isNotEmpty) {
+      final head = _playQueue.first;
+      final take = min(_feedSlice - n, head.length - _headOffset);
+      out.setRange(n, n + take, head, _headOffset);
+      n += take;
+      _headOffset += take;
+      if (_headOffset >= head.length) {
+        _playQueue.removeFirst();
+        _headOffset = 0;
+      }
+    }
+    FlutterPcmSound.feed(PcmArrayInt16.fromList(Int16List.sublistView(out, 0, n)));
+    _setState(CallState.speaking);
   }
 
   Future<void> _startMic() async {
@@ -97,8 +150,11 @@ class CallClient {
       // 畫面仍顯示聆聽但後端收不到聲音。焦點已由 audio_session 統一管理，這裡不參與。
       audioInterruption: AudioInterruptionMode.none,
     ));
+    final pacer = MicPacer();
+    final clock = Stopwatch()..start();
     _micSub = stream.listen((chunk) {
-      _ws?.sink.add(chunk);
+      final paced = pacer.process(chunk, clock.elapsedMilliseconds);
+      if (paced.isNotEmpty) _ws?.sink.add(paced);
       if (onLevel != null && chunk.length >= 2) {
         final samples = Uint8List.fromList(chunk).buffer.asInt16List(0, chunk.length ~/ 2);
         var peak = 0;
@@ -119,15 +175,12 @@ class CallClient {
     final msg = jsonDecode(data as String) as Map<String, dynamic>;
     switch (msg['type']) {
       case 'ready':
-        _startMic().then((_) => onState(CallState.listening));
+        _startMic().then((_) => _setState(CallState.listening));
       case 'interrupted':
-        _flushPlayer();
-        onState(CallState.listening);
-      case 'transcript':
-        onTranscript(msg['role'] == 'elder', msg['text'] as String);
+        _clearPlayQueue();
+        _setState(CallState.listening);
       case 'turnComplete':
-        _speakingTimer?.cancel();
-        onState(CallState.listening);
+        if (_playQueue.isEmpty && _nativeHungry) _setState(CallState.listening);
       case 'error':
         _fail(msg['message'] as String? ?? '語音服務錯誤');
     }
@@ -135,45 +188,55 @@ class CallClient {
 
   void _playChunk(Uint8List bytes) {
     if (bytes.length < 2) return;
-    final n = bytes.length ~/ 2;
-    final samples = bytes.buffer.asInt16List(bytes.offsetInBytes, n);
-    FlutterPcmSound.feed(PcmArrayInt16.fromList(samples));
-    onState(CallState.speaking);
-    // 保底：一段時間沒新音訊就回到聆聽
-    _speakingTimer?.cancel();
-    _speakingTimer = Timer(const Duration(milliseconds: 1500), () {
-      if (_active) onState(CallState.listening);
-    });
-  }
-
-  /// 被長輩打斷：套件無「清空緩衝」API，重建播放器以立即停聲
-  Future<void> _flushPlayer() async {
-    await FlutterPcmSound.release();
-    await _setupPlayer();
+    // 複製一份：WebSocket 的緩衝區之後可能被重用
+    _playQueue.add(Int16List.fromList(bytes.buffer.asInt16List(bytes.offsetInBytes, bytes.length ~/ 2)));
+    if (_nativeHungry) _pump();
   }
 
   void _fail(String message) {
     onError(message);
     stop();
-    onState(CallState.error);
+    _setState(CallState.error);
   }
 
-  Future<void> stop({bool fromServer = false}) async {
-    if (!_active) return;
+  Future<void> stop({bool fromServer = false}) {
+    if (!_active) return _teardown ?? Future.value();
     _active = false;
-    _speakingTimer?.cancel();
-    if (!fromServer) {
-      try {
-        _ws?.sink.add(jsonEncode({'type': 'end'}));
-      } catch (_) {}
+    return _teardown = _tearDown(fromServer);
+  }
+
+  /// 每一步各自限時、各自接錯：原生音訊或 WebSocket 任何一步卡住或丟錯，
+  /// 都不能讓畫面停在通話中（那樣「結束通話」會因為 _active 已是 false 而完全沒反應）。
+  Future<void> _tearDown(bool fromServer) async {
+    try {
+      if (!fromServer) {
+        try {
+          _ws?.sink.add(jsonEncode({'type': 'end'}));
+        } catch (_) {}
+      }
+      await _step('麥克風串流', () async => _micSub?.cancel());
+      await _step('錄音器', () async {
+        if (await _recorder.isRecording()) await _recorder.stop();
+      });
+      // 先關 sink 再取消訂閱：沒人監聽時 WebSocket 的關閉交握等不到對方回應
+      final ws = _ws;
+      _ws = null;
+      await _step('WebSocket', () async => ws?.sink.close());
+      await _step('WebSocket 訂閱', () async => _wsSub?.cancel());
+      FlutterPcmSound.setFeedCallback(null);
+      _clearPlayQueue();
+      await _step('播放器', FlutterPcmSound.release);
+    } finally {
+      _setState(CallState.idle);
     }
-    await _micSub?.cancel();
-    if (await _recorder.isRecording()) await _recorder.stop();
-    await _wsSub?.cancel();
-    await _ws?.sink.close();
-    _ws = null;
-    await FlutterPcmSound.release();
-    onState(CallState.idle);
+  }
+
+  Future<void> _step(String name, Future<void> Function() run) async {
+    try {
+      await run().timeout(const Duration(seconds: 3));
+    } catch (e) {
+      debugPrint('[call] 收尾步驟「$name」逾時或失敗：$e');
+    }
   }
 
   Future<void> dispose() async {

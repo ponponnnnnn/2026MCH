@@ -10,6 +10,35 @@ import { getProfile, saveProfile, registerTurn, registerTurnPace, type ElderProf
 import { markAnswered } from "../data/call-attempts.js";
 import { buildBriefing } from "./briefing.js";
 import { summarizeSession, type TranscriptLine } from "./summary.js";
+import { createHash } from "node:crypto";
+import { closeSync, mkdirSync, openSync, writeSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+const DUMP_DIR = fileURLToPath(new URL("../../debug-audio/", import.meta.url));
+
+/** 診斷用：把收到的 16kHz/16-bit/mono PCM 原樣寫成 WAV，結束時回填長度 */
+function openWavDump(name: string) {
+  mkdirSync(DUMP_DIR, { recursive: true });
+  const fd = openSync(`${DUMP_DIR}${name}.wav`, "w");
+  writeSync(fd, Buffer.alloc(44));
+  let bytes = 0;
+  return {
+    write(buf: Buffer) {
+      writeSync(fd, buf);
+      bytes += buf.length;
+    },
+    close() {
+      const h = Buffer.alloc(44);
+      h.write("RIFF", 0); h.writeUInt32LE(36 + bytes, 4); h.write("WAVE", 8);
+      h.write("fmt ", 12); h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(1, 22);
+      h.writeUInt32LE(16000, 24); h.writeUInt32LE(32000, 28); h.writeUInt16LE(2, 32); h.writeUInt16LE(16, 34);
+      h.write("data", 36); h.writeUInt32LE(bytes, 40);
+      writeSync(fd, h, 0, 44, 0);
+      closeSync(fd);
+      return bytes;
+    },
+  };
+}
 import { buildKickoff } from "../prompt/sections/opening.js";
 
 const ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
@@ -50,11 +79,16 @@ export async function handleCall(ws: WebSocket, elderId: string, attemptId?: str
   let statTimer: NodeJS.Timeout | undefined;
   let statBytes = 0;
   let statPeak = 0;
+  let statChunks = 0;
+  let statDup = 0;
+  let lastChunkHash = "";
+  let dump: ReturnType<typeof openWavDump> | undefined;
 
   const finish = async () => {
     if (closed) return;
     closed = true;
     if (statTimer) clearInterval(statTimer);
+    if (dump) console.log(`[mic] 診斷：WAV 已寫入 ${dump.close()} bytes`);
     try {
       session?.close();
     } catch {}
@@ -90,6 +124,13 @@ export async function handleCall(ws: WebSocket, elderId: string, attemptId?: str
     if (isBinary) {
       const buf = data as Buffer;
       statBytes += buf.length;
+      statChunks += 1;
+      if (dump) {
+        const h = createHash("md5").update(buf).digest("hex");
+        if (h === lastChunkHash) statDup += 1;
+        lastChunkHash = h;
+        dump.write(buf);
+      }
       for (let i = 0; i + 1 < buf.length; i += 2) statPeak = Math.max(statPeak, Math.abs(buf.readInt16LE(i)));
       session?.sendRealtimeInput({
         audio: { data: buf.toString("base64"), mimeType: "audio/pcm;rate=16000" },
@@ -233,10 +274,16 @@ export async function handleCall(ws: WebSocket, elderId: string, attemptId?: str
   // 長輩按下通話後由小幫手先開口，依首次通話／例行通話走不同開場順序（之後全靠語音）
   session.sendRealtimeInput({ text: buildKickoff(briefing) });
 
-  // 收音診斷：每秒印出收到的音訊量與峰值
+  // 收音診斷：每秒印出收到的音訊量、峰值、區塊數、與前一塊完全相同的區塊數（抓重複送）
+  if (config.debugDumpAudio) {
+    dump = openWavDump(sessionId);
+    console.log(`[mic] 診斷：原始 PCM 會存到 debug-audio/${sessionId}.wav`);
+  }
   statTimer = setInterval(() => {
-    console.log(`[mic] ${statBytes} bytes/s, peak=${(statPeak / 32768).toFixed(3)}`);
+    console.log(`[mic] ${statBytes} bytes/s, peak=${(statPeak / 32768).toFixed(3)}, chunks=${statChunks}, dup=${statDup}`);
     statBytes = 0;
     statPeak = 0;
+    statChunks = 0;
+    statDup = 0;
   }, 1000);
 }
