@@ -5,7 +5,8 @@ import { config } from "./config.js";
 import { elderRef, taipeiDate, taipeiDayStart, Timestamp, type HealthType } from "./firestore.js";
 import { buildSystemPrompt, type ConversationContext } from "./prompt.js";
 import { runTool, toolDeclarations } from "./tools.js";
-import { getProfile, saveProfile, registerTurn, registerTurnPace } from "./profile.js";
+import { getProfile, saveProfile, registerTurn, registerTurnPace, needsOnboarding } from "./profile.js";
+import { toTraditional } from "./textConvert.js";
 
 const ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
 
@@ -73,6 +74,9 @@ export async function handleCall(ws: WebSocket, elderId: string) {
   // F11：載入這位長輩的個人化 Profile。DEV_NO_DB 模式下 getProfile 內部會直接回傳預設值，
   // 所以個人化邏輯不需要等 Firestore 接好就能開發、測試。
   const profile = await getProfile(elderId);
+  // 記錄這通電話開始時是否還在建檔階段，通話結束時只有這種情況才累計嘗試次數，
+  // 避免已經建檔完成的長輩，之後的每通電話都被誤算進嘗試次數裡
+  const wasOnboardingAttempt = needsOnboarding(profile);
 
   // 時段感知：避免問出不合時宜的問題（晚上問早餐）或重複問今天稍早已經聊過的基礎項目
   const conversationContext: ConversationContext = {
@@ -108,7 +112,7 @@ export async function handleCall(ws: WebSocket, elderId: string) {
     }
     if (sc?.interrupted) sendJson({ type: "interrupted" });
     if (sc?.inputTranscription?.text) {
-      const text = sc.inputTranscription.text;
+      const text = toTraditional(sc.inputTranscription.text);
       pushLine("elder", text);
       sendJson({ type: "transcript", role: "elder", text });
       // 這輪長輩開口的第一段文字，記錄起始時間；之後累加字數
@@ -116,8 +120,9 @@ export async function handleCall(ws: WebSocket, elderId: string) {
       elderSpeechCharCount += text.length;
     }
     if (sc?.outputTranscription?.text) {
-      pushLine("agent", sc.outputTranscription.text);
-      sendJson({ type: "transcript", role: "agent", text: sc.outputTranscription.text });
+      const text = toTraditional(sc.outputTranscription.text);
+      pushLine("agent", text);
+      sendJson({ type: "transcript", role: "agent", text });
     }
     if (sc?.turnComplete) {
       sendJson({ type: "turnComplete" });
@@ -135,6 +140,7 @@ export async function handleCall(ws: WebSocket, elderId: string) {
     }
 
     if (msg.toolCall?.functionCalls) {
+      console.log(`[live] 收到 ${msg.toolCall.functionCalls.length} 個工具呼叫：`, msg.toolCall.functionCalls.map((fc) => fc.name).join(", "));
       const functionResponses = await Promise.all(
         msg.toolCall.functionCalls.map(async (fc) => {
           let response: Record<string, unknown>;
@@ -158,6 +164,9 @@ export async function handleCall(ws: WebSocket, elderId: string) {
     try {
       session?.close();
     } catch {}
+    // 這通電話開始時如果還在建檔階段，結束時累計一次嘗試次數；
+    // 四項全部填滿後 needsOnboarding 會自動回傳 false，之後的通話就不會再累計
+    if (wasOnboardingAttempt) profile.onboardingAttempts += 1;
     await Promise.all([
       sessionRef
         ?.update({ endedAt: Timestamp.now(), transcript })

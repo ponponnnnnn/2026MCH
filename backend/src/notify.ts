@@ -21,9 +21,15 @@ async function resolveRecipients(elderId: string): Promise<string[]> {
   return fromDb.length ? fromDb : config.familyEmails;
 }
 
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+}
+
 /**
- * 以 Gmail 寄信給家屬。html 有給就送 HTML 信件（text 當作純文字備援，
- * 部分信箱或無法顯示 HTML 的通知服務會退回顯示 text 版本）；
+ * 以 Gmail 寄信給家屬。html 有給就送 HTML 信件（text 當作純文字備援）；
+ * attachments 可附加檔案（例如每日報告 PDF），直接傳 Buffer，不需要先落地寫檔；
  * 未設定 Gmail 或沒有收件人時只印 log，方便本機開發。
  */
 export async function notifyFamily(
@@ -31,11 +37,15 @@ export async function notifyFamily(
   subject: string,
   text: string,
   html?: string,
+  attachments?: EmailAttachment[],
 ): Promise<boolean> {
   try {
     const to = await resolveRecipients(elderId);
     if (!config.gmailUser || !config.gmailAppPassword || to.length === 0) {
       console.log(`[notify:dry-run] to=${to.join(",") || "(無收件人)"}\n主旨：${subject}\n${text}`);
+      if (attachments?.length) {
+        console.log(`[notify:dry-run] 附件：${attachments.map((a) => `${a.filename} (${a.content.length} bytes)`).join("、")}`);
+      }
       return false;
     }
     await getTransporter().sendMail({
@@ -44,6 +54,9 @@ export async function notifyFamily(
       subject,
       text,
       ...(html ? { html } : {}),
+      ...(attachments?.length
+        ? { attachments: attachments.map((a) => ({ filename: a.filename, content: a.content, contentType: a.contentType })) }
+        : {}),
     });
     return true;
   } catch (err) {

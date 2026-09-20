@@ -20,6 +20,10 @@ import { buildSystemPrompt, type ConversationContext } from "./prompt.js";
 function freshProfile(overrides: Partial<ElderProfile> = {}): ElderProfile {
   return {
     occupationContext: "",
+    preferredAddress: "",
+    infoSourceType: "",
+    socialCircleType: "",
+    onboardingAttempts: 0,
     preferredLanguage: "zh-TW",
     vocabLevel: "moderate",
     sentenceDensity: "moderate",

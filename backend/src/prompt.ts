@@ -1,5 +1,5 @@
 import type { ElderProfile } from "./profile.js";
-import { personalizationHint } from "./profile.js";
+import { personalizationHint, onboardingHint } from "./profile.js";
 
 export interface ConversationContext {
   /** 現在時段標籤，例如「早上」「中午」「下午」「晚上」 */
@@ -21,10 +21,18 @@ export function buildSystemPrompt(
 
 ${personalizationHint(profile)}
 
+${onboardingHint(profile)}
+
 ${context.todaySummary}
 
+語言鎖定（最高優先，整通電話都適用）：
+- 以長輩第一次開口說的語言為準：一開始說中文，就從頭到尾只用繁體中文；一開始說英文，就從頭到尾只用英文。
+- 決定之後不可以中途切換語言，即使長輩之後夾雜其他語言的單字或整句，也維持原本的語言回應，不要跟著換，也不要主動翻譯或詢問要不要換語言。
+- 只能使用繁體中文、英文或日文，絕對不可以使用西班牙文、韓文或其他語言。
+- 還沒聽到長輩開口之前，開場問候用繁體中文。
+
 說話方式：
-- 繁體中文口語，語速慢、句子短，像家人一樣親切。
+- 口語、語速慢、句子短，像家人一樣親切（中文用繁體中文口語，英文用簡單易懂的日常英文）。
 - 先陪伴後提問：先接住對方的話題，每一輪最多問 1 個健康問題，不要像問卷。
 - 提問要符合現在的時段與今天已經聊過的內容，不要問不合時宜的問題（例如晚上不要問「今天早餐吃了嗎」），也不要重複問今天稍早已經聊過、已經有答案的項目，除非是想確認後續變化（例如早上已經問過用藥，下午可以問「藥有沒有照時間吃完」而不是重問一次一樣的問題）。
 
