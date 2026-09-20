@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/providers.dart';
+import '../core/theme.dart';
 
 class RoleSelectScreen extends ConsumerWidget {
   const RoleSelectScreen({super.key});
@@ -33,8 +34,8 @@ class RoleSelectScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('長照小幫手')),
       body: SafeArea(
         child: Column(children: [
-          big('我是長輩', Icons.elderly, Role.elder, const Color(0xFFE07A2F)),
-          big('我是家屬', Icons.family_restroom, Role.family, const Color(0xFF2E7D6B)),
+          big('我是長輩', Icons.elderly, Role.elder, AppColors.yellow700),
+          big('我是家屬', Icons.family_restroom, Role.family, AppColors.blue500),
         ]),
       ),
     );

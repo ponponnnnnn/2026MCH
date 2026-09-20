@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/providers.dart';
+import 'core/theme.dart';
 import 'features/elder/elder_screen.dart';
 import 'features/family/family_screen.dart';
 import 'features/role_select_screen.dart';
@@ -30,10 +31,7 @@ class CareApp extends ConsumerWidget {
     return MaterialApp(
       title: '長照小幫手',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2E7D6B)),
-        useMaterial3: true,
-      ),
+      theme: buildAppTheme(),
       home: switch (role) {
         Role.elder => const ElderScreen(),
         Role.family => const FamilyScreen(),

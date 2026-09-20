@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/config.dart';
 import '../../core/models.dart';
 import '../../core/providers.dart';
+import '../../core/theme.dart';
 
 class FamilyScreen extends ConsumerStatefulWidget {
   const FamilyScreen({super.key});
@@ -22,7 +23,20 @@ class _FamilyScreenState extends ConsumerState<FamilyScreen> {
     const pages = [_TodayTab(), _AlertsTab(), _HistoryTab(), _TrendTab()];
     return Scaffold(
       appBar: AppBar(
-        title: Text('${AppConfig.elderName}｜家屬模式'),
+        toolbarHeight: 72,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Row(children: [
+              BrandMark(),
+              SizedBox(width: 4),
+              Text('安心快報', style: TextStyle(fontSize: 13, color: AppColors.inkSoft)),
+            ]),
+            const SizedBox(height: 4),
+            Text(AppConfig.elderName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: '切換身分',
@@ -53,10 +67,21 @@ String _overallLabel(Overall o) => switch (o) {
     };
 
 Color _overallColor(Overall o) => switch (o) {
-      Overall.normal => Colors.green.shade100,
-      Overall.watch => Colors.amber.shade100,
-      Overall.alert => Colors.red.shade100,
+      Overall.normal => AppColors.green50,
+      Overall.watch => AppColors.yellow50,
+      Overall.alert => AppColors.red50,
     };
+
+Color _overallAccent(Overall o) => switch (o) {
+      Overall.normal => AppColors.green500,
+      Overall.watch => AppColors.yellow500,
+      Overall.alert => AppColors.red500,
+    };
+
+Widget _sectionTitle(String t) => Padding(
+      padding: const EdgeInsets.only(top: 16, bottom: 8),
+      child: Text(t, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+    );
 
 final _hm = DateFormat('HH:mm');
 
@@ -69,53 +94,64 @@ class _TodayTab extends ConsumerWidget {
     final logs = ref.watch(logsProvider).value ?? const [];
     final summary = ref.watch(summaryProvider).value;
 
-    const meta = {
-      'medication': ('💊 用藥', 'medication'),
-      'sleep': ('😴 睡眠', 'sleep'),
-      'mood': ('🙂 心情', 'mood'),
-      'meal': ('🍚 飲食', 'meal'),
-      'pain': ('🩹 疼痛／不適', 'pain'),
-    };
+    const meta = [
+      ('medication', '💊 用藥', AppColors.blue500),
+      ('meal', '🍚 飲食', AppColors.red500),
+      ('sleep', '😴 睡眠', AppColors.yellow500),
+      ('pain', '🩹 疼痛／不適', AppColors.green500),
+      ('mood', '🙂 心情', AppColors.blue500),
+    ];
 
     HealthLog? latest(String type) =>
         logs.where((l) => l.type == type).fold<HealthLog?>(
             null, (a, b) => a == null || b.ts.isAfter(a.ts) ? b : a);
 
+    Widget healthCard((String, String, Color) m) {
+      final l = latest(m.$1);
+      // sleep 的 value 是「數值或狀態」（tools/declarations.ts），不一定是數字，
+      // 不是數字就不套「約 X 小時」這個單位
+      final v = l == null ? null : (m.$1 == 'sleep' && num.tryParse(l.value.trim()) != null ? '約 ${l.value} 小時' : l.value);
+      return AccentCard(
+        accent: m.$3,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Expanded(child: Text(m.$2, style: const TextStyle(fontSize: 14, color: AppColors.inkSoft))),
+            if (l != null) Text(_hm.format(l.ts), style: const TextStyle(fontSize: 12, color: AppColors.inkSoft)),
+          ]),
+          const SizedBox(height: 4),
+          Text(v ?? '今天還沒聊到',
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: v == null ? AppColors.inkSoft.withValues(alpha: 0.5) : AppColors.ink)),
+          if (l != null && l.note.isNotEmpty)
+            Text('「${l.note}」', style: const TextStyle(fontSize: 13, color: AppColors.inkSoft)),
+        ]),
+      );
+    }
+
     return ListView(padding: const EdgeInsets.all(16), children: [
-      Card(
-        color: _overallColor(overall),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
+      AccentCard(
+        accent: _overallAccent(overall),
+        child: Container(
+          width: double.infinity,
+          color: _overallColor(overall),
+          padding: const EdgeInsets.symmetric(vertical: 4),
           child: Text('今日整體：${_overallLabel(overall)}',
-              style: Theme.of(context).textTheme.headlineSmall),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
         ),
       ),
-      const SizedBox(height: 8),
-      for (final e in meta.entries)
-        Builder(builder: (_) {
-          final l = latest(e.key);
-          final v = l == null
-              ? '尚無紀錄'
-              : e.key == 'sleep' && num.tryParse(l.value.trim()) != null
-                  ? '約 ${l.value} 小時'
-                  : l.value;
-          return Card(
-            child: ListTile(
-              title: Text(e.value.$1),
-              subtitle: Text(l == null || l.note.isEmpty ? v : '$v\n「${l.note}」'),
-              isThreeLine: l != null && l.note.isNotEmpty,
-              trailing: l == null ? null : Text(_hm.format(l.ts)),
-            ),
-          );
-        }),
-      if (summary != null)
+      _sectionTitle('今日健康狀況'),
+      for (final m in meta) Padding(padding: const EdgeInsets.only(bottom: 10), child: healthCard(m)),
+      if (summary != null) ...[
+        _sectionTitle('今日摘要'),
         Card(
-          child: ListTile(
-            leading: const Icon(Icons.forum),
-            title: const Text('今日對話摘要'),
-            subtitle: Text(summary),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(summary, style: const TextStyle(fontSize: 15, height: 1.5)),
           ),
         ),
+      ],
       if (AppConfig.demoMode) const _DemoTools(),
     ]);
   }
@@ -187,17 +223,41 @@ class _AlertsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final alerts = ref.watch(alertsProvider).value ?? const [];
-    if (alerts.isEmpty) return const Center(child: Text('今天沒有警報 🎉'));
+    if (alerts.isEmpty) {
+      return ListView(padding: const EdgeInsets.all(16), children: const [
+        SideBarBox(
+          border: AppColors.green500,
+          background: AppColors.green50,
+          child: Text('目前沒有異常警報，一切平順。', style: TextStyle(color: AppColors.green700)),
+        ),
+      ]);
+    }
     return ListView(padding: const EdgeInsets.all(16), children: [
       for (final a in alerts)
-        Card(
-          color: a.level == AlertLevel.red ? Colors.red.shade50 : Colors.amber.shade50,
-          child: ListTile(
-            leading: Icon(Icons.warning,
-                color: a.level == AlertLevel.red ? Colors.red : Colors.amber.shade800),
-            title: Text('${a.level == AlertLevel.red ? '🔴 緊急' : '🟡 留意'}｜${a.reason}'),
-            subtitle: Text('「${a.quote}」'),
-            trailing: Text(_hm.format(a.ts)),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: SideBarBox(
+            border: a.level == AlertLevel.red ? AppColors.red500 : AppColors.yellow500,
+            background: a.level == AlertLevel.red ? AppColors.red50 : AppColors.yellow50,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(
+                  child: Text(a.level == AlertLevel.red ? '緊急' : '請留意',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: a.level == AlertLevel.red ? AppColors.red700 : AppColors.yellow700)),
+                ),
+                Text(_hm.format(a.ts), style: const TextStyle(fontSize: 13, color: AppColors.inkSoft)),
+              ]),
+              const SizedBox(height: 4),
+              Text(a.reason, style: const TextStyle(fontSize: 16)),
+              if (a.quote.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text('長輩原話：「${a.quote}」', style: const TextStyle(fontSize: 13, color: AppColors.inkSoft)),
+                ),
+            ]),
           ),
         ),
     ]);
@@ -222,9 +282,20 @@ class _HistoryTab extends ConsumerWidget {
               expandedCrossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('💊 ${r.medication}\n😴 ${r.sleep}\n🙂 ${r.mood}\n🍚 ${r.meals}\n🩹 ${r.pain}'),
-                if (r.events.isNotEmpty) Text('\n⚠️ ${r.events.join('；')}'),
-                Text('\n🗣 ${r.summary}'),
-                if (r.followUps.isNotEmpty) Text('\n👉 ${r.followUps.join('；')}'),
+                if (r.events.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text('⚠️ ${r.events.join('；')}', style: const TextStyle(color: AppColors.red700, fontWeight: FontWeight.w600)),
+                ],
+                const SizedBox(height: 8),
+                Text('🗣 ${r.summary}'),
+                if (r.followUps.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  SideBarBox(
+                    border: AppColors.green500,
+                    background: AppColors.green50,
+                    child: Text('建議關心：${r.followUps.join('；')}', style: const TextStyle(color: AppColors.green700)),
+                  ),
+                ],
               ],
             ),
           ),
@@ -244,10 +315,10 @@ class _TrendTab extends ConsumerWidget {
       error: (e, _) => Center(child: Text('載入失敗：$e')),
       data: (pts) => ListView(padding: const EdgeInsets.all(16), children: [
         Text('7 天睡眠時數', style: Theme.of(context).textTheme.titleMedium),
-        _chart(pts, (p) => p.sleepHours, 0, 10, Colors.indigo, null),
+        _chart(pts, (p) => p.sleepHours, 0, 10, AppColors.blue500, null),
         const SizedBox(height: 24),
         Text('近 7 天整體狀態', style: Theme.of(context).textTheme.titleMedium),
-        _chart(pts, (p) => _overallScore(p.overall), 0, 2, Colors.teal, _overallEmoji),
+        _chart(pts, (p) => _overallScore(p.overall), 0, 2, AppColors.blue700, _overallEmoji),
       ]),
     );
   }
@@ -287,8 +358,7 @@ class _TrendTab extends ConsumerWidget {
                 getTitlesWidget: (v, _) {
                   final i = v.toInt();
                   if (i < 0 || i >= pts.length) return const SizedBox();
-                  return Text(DateFormat('M/d').format(pts[i].day),
-                      style: const TextStyle(fontSize: 11));
+                  return Text(DateFormat('M/d').format(pts[i].day), style: const TextStyle(fontSize: 11));
                 },
               ),
             ),
