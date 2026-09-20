@@ -12,7 +12,7 @@ function shortDate(dateStr: string) {
 export function TrendChart({ reports }: { reports: DailyReport[] }) {
   if (reports.length === 0) {
     return (
-      <div className="border border-ink/10 bg-white px-5 py-8 text-center text-ink/40">
+      <div className="rounded-2xl bg-white px-5 py-8 text-center text-ink-soft/60 shadow-sm">
         還沒有足夠的每日報告可以畫趨勢
       </div>
     );
@@ -24,23 +24,23 @@ export function TrendChart({ reports }: { reports: DailyReport[] }) {
   }));
 
   return (
-    <div className="border border-ink/10 bg-white px-5 py-4">
-      <p className="mb-3 text-sm text-ink/50">近 7 天整體狀態</p>
+    <div className="rounded-2xl bg-white px-5 py-4 shadow-sm">
+      <p className="mb-3 text-sm text-ink-soft">近 7 天整體狀態</p>
       <ResponsiveContainer width="100%" height={180}>
         <LineChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-          <CartesianGrid stroke="#E5E2D8" vertical={false} />
-          <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#8A8D82" }} axisLine={false} tickLine={false} />
+          <CartesianGrid stroke="#EEF1F5" vertical={false} />
+          <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#5F6368" }} axisLine={false} tickLine={false} />
           <YAxis
             domain={[0, 2]}
             ticks={[0, 1, 2]}
             tickFormatter={(v) => SCORE_LABEL[v]}
-            tick={{ fontSize: 11, fill: "#8A8D82" }}
+            tick={{ fontSize: 11, fill: "#5F6368" }}
             width={70}
             axisLine={false}
             tickLine={false}
           />
-          <Tooltip formatter={(v: number) => SCORE_LABEL[v]} labelStyle={{ color: "#262922" }} />
-          <Line type="monotone" dataKey="score" stroke="#4B7A45" strokeWidth={2} dot={{ r: 4 }} />
+          <Tooltip formatter={(v: number) => SCORE_LABEL[v]} labelStyle={{ color: "#202124" }} />
+          <Line type="monotone" dataKey="score" stroke="#4285F4" strokeWidth={2.5} dot={{ r: 4, fill: "#4285F4" }} />
         </LineChart>
       </ResponsiveContainer>
     </div>
