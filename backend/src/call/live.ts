@@ -226,6 +226,7 @@ export async function handleCall(
           let response: Record<string, unknown>;
           try {
             response = await runTool(fc.name ?? "", fc.args ?? {}, { elderId, sessionId, profile: profile! });
+            console.log(`[tool:${fc.name}]`, JSON.stringify(fc.args ?? {}));
           } catch (err) {
             console.error(`[tool:${fc.name}]`, err);
             response = { ok: false, error: String(err) };
