@@ -52,14 +52,24 @@ const ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
  * 後端 → 瀏覽器：
  *   binary  24kHz / 16-bit / mono PCM 模型語音
  *   text    JSON {"type":"ready"|"interrupted"|"transcript"|"turnComplete"|"error", ...}
+ *
+ * onCallEnded：通話完全收尾（含摘要寫入嘗試）後呼叫一次，只回報事實，不做決定——
+ * 「這通結束後要不要排下一通」是 jobs 層的排程判斷，call 層不該知道 DEMO_MODE 這種概念。
  */
-export async function handleCall(ws: WebSocket, elderId: string, attemptId?: string) {
+export async function handleCall(
+  ws: WebSocket,
+  elderId: string,
+  attemptId?: string,
+  onCallEnded?: (info: { elderId: string; isFirstCall: boolean; elderSpoke: boolean }) => void,
+) {
   let sessionId = `dev-${Date.now()}`;
   let sessionRef: DocumentReference | undefined;
   // F11：這通電話的個人化 Profile；要等 Firestore 讀完才有值，但 finish() 在那之前就可能被呼叫
   // （ws 提早關閉／出錯），所以型別誠實標成可能是 undefined，收尾時要判斷過再寫回。
   let profile: ElderProfile | undefined;
   let elderName = "長輩";
+  // 同樣道理：finish() 可能在 buildBriefing() 讀完之前就被呼叫，先給安全預設值 false。
+  let isFirstCall = false;
 
   const transcript: TranscriptLine[] = [];
   const pushLine = (role: TranscriptLine["role"], text: string) => {
@@ -92,13 +102,14 @@ export async function handleCall(ws: WebSocket, elderId: string, attemptId?: str
     try {
       session?.close();
     } catch {}
+    // 首次通話判斷（call/briefing.ts）、demo 自動回撥判斷都靠這個欄位分辨「真的聊過」跟「連線失敗／秒掛」
+    const elderSpoke = transcript.some((l) => l.role === "elder");
     await Promise.all([
       sessionRef
         ?.update({
           endedAt: Timestamp.now(),
           transcript,
-          // 首次通話判斷（call/briefing.ts）靠這個欄位分辨「真的聊過」跟「連線失敗／秒掛」
-          elderSpoke: transcript.some((l) => l.role === "elder"),
+          elderSpoke,
         })
         .catch((e) => console.error("[session] 收尾寫入失敗", e)),
       // F11：把這通電話裡累積的 Profile 變化（追問次數、比喻分數、語速估計等）寫回 Firestore
@@ -115,6 +126,8 @@ export async function handleCall(ws: WebSocket, elderId: string, attemptId?: str
         console.error("[summary] 收尾寫入失敗", e);
       }
     }
+
+    onCallEnded?.({ elderId, isFirstCall, elderSpoke });
   };
 
   // ws 的事件註冊放在任何 await 之前：通話前置作業（讀 Firestore、連線 Gemini）要花一點時間，
@@ -148,6 +161,7 @@ export async function handleCall(ws: WebSocket, elderId: string, attemptId?: str
   // 通話前讀 Firestore 一次：登記姓名、稱呼、是否首次通話、時段、今天已聊、上次摘要、掛勾、健康項目優先序、已知基本資料
   const briefing = await buildBriefing(elderId);
   elderName = briefing.preferredName ?? briefing.elderName;
+  isFirstCall = briefing.isFirstCall;
 
   if (!config.devNoDb) {
     sessionRef = elderRef(elderId).collection("sessions").doc();

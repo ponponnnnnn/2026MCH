@@ -5,7 +5,7 @@ import { WebSocketServer } from "ws";
 import { config } from "./config.js";
 import { handleCall } from "./call/live.js";
 import { generateDailyReport } from "./jobs/report.js";
-import { runCallSchedule, ringElder } from "./jobs/call-schedule.js";
+import { runCallSchedule, ringElder, scheduleDemoCallbackIfFirstCall } from "./jobs/call-schedule.js";
 import { isValidId } from "./data/firestore.js";
 import { normalizeToken, registerDevice } from "./data/devices.js";
 
@@ -124,7 +124,7 @@ wss.on("connection", (ws, req) => {
   const elderId = url.searchParams.get("elderId") ?? config.defaultElderId;
   const attemptIdParam = url.searchParams.get("attemptId");
   const attemptId = attemptIdParam && isValidId(attemptIdParam) ? attemptIdParam : undefined;
-  handleCall(ws, elderId, attemptId).catch((err) => {
+  handleCall(ws, elderId, attemptId, scheduleDemoCallbackIfFirstCall).catch((err) => {
     console.error("[ws] handleCall 失敗", err);
     ws.close();
   });

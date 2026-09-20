@@ -12,6 +12,7 @@ import { sendIncomingCall } from "../push.js";
 import { decideCall } from "./call-rules.js";
 
 const MISSED_TIMEOUT_MS = 2 * 60 * 1000;
+const DEMO_CALLBACK_DELAY_MS = 20 * 1000;
 
 /**
  * 建立一筆響鈴嘗試 → 推播 → 回寫 pushed、清失效 token。
@@ -52,6 +53,28 @@ export async function ringElder(
   }
 
   return { attemptId, pushed };
+}
+
+/**
+ * Demo 專用：長輩第一次「真的聊過」的通話一結束（call/live.ts 收尾、含摘要寫入嘗試完成後
+ * 才呼叫），等一小段時間後自動回撥一次，示範主動關懷、順便讓下一通接續上次話題。
+ * 只在 DEMO_MODE 開啟時生效；只認 isFirstCall && elderSpoke 這一次——回撥打通的那通
+ * isFirstCall 必為 false，不會再觸發，天然只回撥一次，不需要額外旗標防連環回撥。
+ */
+export function scheduleDemoCallbackIfFirstCall(info: {
+  elderId: string;
+  isFirstCall: boolean;
+  elderSpoke: boolean;
+}): void {
+  if (!config.demoMode || !info.isFirstCall || !info.elderSpoke) return;
+  console.log(
+    `[call-schedule] (demo) ${DEMO_CALLBACK_DELAY_MS / 1000} 秒後自動回撥 elderId=${info.elderId}`,
+  );
+  setTimeout(() => {
+    ringElder(info.elderId, "demo", "demo").catch((err) =>
+      console.error(`[call-schedule] demo 自動回撥失敗 elderId=${info.elderId}`, err),
+    );
+  }, DEMO_CALLBACK_DELAY_MS);
 }
 
 interface ScheduleResult {
