@@ -2,7 +2,8 @@ import { Type, type FunctionDeclaration } from "@google/genai";
 import { config } from "./config.js";
 import { elderRef, Timestamp, type AlertLevel, type HealthType } from "./firestore.js";
 import { notifyFamily } from "./notify.js";
-import { registerClarification, registerMetaphorFeedback, type ElderProfile } from "./profile.js";
+import { registerClarification, registerMetaphorFeedback, updateOnboardingInfo, type ElderProfile } from "./profile.js";
+import { toTraditional } from "./textConvert.js";
 
 /** 宣告給 Gemini Live 的工具（規格見 v2_mvp.md §7，含 F11 個人化語域四訊號） */
 export const toolDeclarations: FunctionDeclaration[] = [
@@ -66,6 +67,20 @@ export const toolDeclarations: FunctionDeclaration[] = [
       required: ["category", "understood"],
     },
   },
+  {
+    name: "update_onboarding_info",
+    description:
+      "只有在長輩是第一次使用（System Instruction 裡有提到首次建檔）時才需要用到。在自然對話中問到以下任一項資訊時呼叫，記錄下來，不需要口頭告知長輩你呼叫了這個工具。可以只填有問到的欄位，不用每次都填滿。",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        occupationContext: { type: Type.STRING, description: "以前從事的職業，例如「曾任水電師傅」「退休國小老師」" },
+        preferredAddress: { type: Type.STRING, description: "長輩希望被稱呼的方式，例如「陳伯伯」「阿嬤」" },
+        infoSourceType: { type: Type.STRING, description: "平常主要的資訊來源，例如「電視新聞、LINE 群組」" },
+        socialCircleType: { type: Type.STRING, description: "平常主要的社交圈或互動對象，例如「鄰居、市場攤販」或「幫忙照顧孫子」" },
+      },
+    },
+  },
 ];
 
 export interface ToolContext {
@@ -82,13 +97,31 @@ export async function runTool(
   ctx: ToolContext,
 ): Promise<Record<string, unknown>> {
   // 這兩個工具只操作記憶體內的 profile，不需要 Firestore，
-  // 放在 DEV_NO_DB 判斷之前，開發個人化邏輯不需要等 Firestore 接好
+  // 放在 DEV_NO_DB 判斷之前，開發個人化邏輯不需要等 Firestore 接好；
+  // 但無論哪種模式都要印 log，不然完全看不出這兩個工具有沒有真的被呼叫到
   if (name === "register_clarification") {
-    registerClarification(ctx.profile, typeof args.topic === "string" ? args.topic : undefined);
+    const topic = typeof args.topic === "string" ? toTraditional(args.topic) : undefined;
+    registerClarification(ctx.profile, topic);
+    console.log(`[tool:register_clarification] topic="${topic}" clarificationCount=${ctx.profile.clarificationCount} vocabLevel=${ctx.profile.vocabLevel}`);
+    console.log(`[tool:register_clarification] topicHistory=`, JSON.stringify(ctx.profile.topicHistory));
     return { ok: true };
   }
   if (name === "register_metaphor_result") {
-    registerMetaphorFeedback(ctx.profile, String(args.category ?? "未分類"), Boolean(args.understood));
+    const category = toTraditional(String(args.category ?? "未分類"));
+    const understood = Boolean(args.understood);
+    registerMetaphorFeedback(ctx.profile, category, understood);
+    console.log(`[tool:register_metaphor_result] category="${category}" understood=${understood}`);
+    console.log(`[tool:register_metaphor_result] metaphorScores=`, JSON.stringify(ctx.profile.metaphorScores));
+    return { ok: true };
+  }
+  if (name === "update_onboarding_info") {
+    updateOnboardingInfo(ctx.profile, {
+      occupationContext: typeof args.occupationContext === "string" ? toTraditional(args.occupationContext) : undefined,
+      preferredAddress: typeof args.preferredAddress === "string" ? toTraditional(args.preferredAddress) : undefined,
+      infoSourceType: typeof args.infoSourceType === "string" ? toTraditional(args.infoSourceType) : undefined,
+      socialCircleType: typeof args.socialCircleType === "string" ? toTraditional(args.socialCircleType) : undefined,
+    });
+    console.log(`[tool:update_onboarding_info]`, JSON.stringify(args));
     return { ok: true };
   }
 
@@ -104,8 +137,8 @@ export async function runTool(
     await elder.collection("healthLogs").add({
       ts: Timestamp.now(),
       type: (args.type as HealthType) ?? "other",
-      value: String(args.value ?? ""),
-      note: String(args.note ?? ""),
+      value: toTraditional(String(args.value ?? "")),
+      note: toTraditional(String(args.note ?? "")),
       sessionId: ctx.sessionId,
     });
     return { ok: true };
@@ -113,8 +146,8 @@ export async function runTool(
 
   if (name === "raise_alert") {
     const level = (args.level as AlertLevel) ?? "yellow";
-    const reason = String(args.reason ?? "");
-    const quote = String(args.quote ?? "");
+    const reason = toTraditional(String(args.reason ?? ""));
+    const quote = toTraditional(String(args.quote ?? ""));
     const ref = await elder.collection("alerts").add({
       ts: Timestamp.now(),
       level,

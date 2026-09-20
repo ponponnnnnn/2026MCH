@@ -3,31 +3,114 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>語音測試</title>
+<title>跟小幫手聊聊</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
-  body{font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px 16px;background:#faf7f2;color:#222}
-  button{font-size:28px;padding:28px;width:100%;border:0;border-radius:20px;background:#2f7d4f;color:#fff}
-  button.on{background:#c0392b}
-  #status{margin:16px 0;color:#666}
-  #log{background:#fff;border-radius:12px;padding:12px;min-height:200px;line-height:1.6}
-  .elder{color:#1a5fb4}.agent{color:#2f7d4f}
+  :root{
+    --blue:#4285F4; --red:#EA4335; --yellow:#FBBC05; --green:#34A853;
+    --ink:#202124; --ink-soft:#5F6368; --paper:#FFFFFF; --bg:#F7F9FC;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:'Noto Sans TC',system-ui,sans-serif; color:var(--ink);
+    background:var(--bg); min-height:100vh; overflow-x:hidden;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  /* 裝飾性幾何背景：低透明度、模糊，活潑但不干擾閱讀 */
+  .bg-shape{ position:fixed; border-radius:50%; filter:blur(50px); opacity:.14; pointer-events:none; z-index:0; }
+  .bg-shape.s1{ width:340px; height:340px; background:var(--blue); top:-120px; left:-100px; }
+  .bg-shape.s2{ width:260px; height:260px; background:var(--yellow); top:40px; right:-90px; }
+  .bg-shape.s3{ width:300px; height:300px; background:var(--green); bottom:-100px; left:-80px; }
+  .bg-shape.s4{ width:220px; height:220px; background:var(--red); bottom:60px; right:-70px; }
+
+  main{ position:relative; z-index:1; max-width:520px; margin:0 auto; padding:36px 20px 28px; text-align:center; }
+
+  .brand-mark{ display:flex; justify-content:center; gap:8px; margin-bottom:18px; }
+  .brand-mark span{ width:12px; height:12px; border-radius:50%; display:inline-block; }
+  .brand-mark span:nth-child(1){ background:var(--blue); }
+  .brand-mark span:nth-child(2){ background:var(--red); }
+  .brand-mark span:nth-child(3){ background:var(--yellow); }
+  .brand-mark span:nth-child(4){ background:var(--green); }
+
+  h1{ font-size:30px; font-weight:900; margin:0 0 6px; letter-spacing:.01em; }
+  #status{ font-size:19px; color:var(--ink-soft); font-weight:500; min-height:28px; margin-bottom:26px; }
+
+  /* 通話中的四色跳動指示（呼應 Google 語音助理的經典動畫），取代單調的純文字狀態 */
+  .pulse-row{ display:flex; justify-content:center; align-items:flex-end; gap:10px; height:34px; margin-bottom:22px; }
+  .pulse-row[hidden]{ display:none; }
+  .pulse-row .dot{ width:14px; height:14px; border-radius:50%; animation:bounce 1.1s ease-in-out infinite; }
+  .pulse-row .dot:nth-child(1){ background:var(--blue); animation-delay:0s; }
+  .pulse-row .dot:nth-child(2){ background:var(--red); animation-delay:.12s; }
+  .pulse-row .dot:nth-child(3){ background:var(--yellow); animation-delay:.24s; }
+  .pulse-row .dot:nth-child(4){ background:var(--green); animation-delay:.36s; }
+  @keyframes bounce{ 0%,80%,100%{ transform:translateY(0); opacity:.55; } 40%{ transform:translateY(-14px); opacity:1; } }
+  @media (prefers-reduced-motion:reduce){ .pulse-row .dot{ animation:none; opacity:.9; } }
+
+  .call-btn{
+    appearance:none; border:0; cursor:pointer; width:190px; height:190px; border-radius:50%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+    background:linear-gradient(155deg, var(--green), #2c9950);
+    box-shadow:0 14px 30px -10px rgba(52,168,83,.55);
+    color:#fff; font-family:inherit; font-size:20px; font-weight:700;
+    transition:transform .15s ease, box-shadow .15s ease, background .2s ease;
+    margin:0 auto;
+  }
+  .call-btn:hover{ transform:translateY(-2px); }
+  .call-btn:active{ transform:translateY(0) scale(.97); }
+  .call-btn:focus-visible{ outline:3px solid var(--blue); outline-offset:4px; }
+  .call-btn.on{
+    background:linear-gradient(155deg, var(--red), #c62d1f);
+    box-shadow:0 14px 30px -10px rgba(234,67,53,.55);
+  }
+  .call-btn svg{ width:52px; height:52px; }
+
+  .log{ text-align:left; margin-top:30px; display:flex; flex-direction:column; gap:12px; }
+  .log > div{
+    background:var(--paper); border-radius:4px 16px 16px 16px; padding:14px 16px;
+    font-size:19px; line-height:1.6; box-shadow:0 1px 3px rgba(32,33,36,.08);
+  }
+  .log > div.elder{ border-left:5px solid var(--blue); }
+  .log > div.agent{ border-left:5px solid var(--green); }
 </style>
 </head>
 <body>
-<h2>跟小幫手聊聊</h2>
-<div id="status">尚未連線</div>
-<button id="btn">開始通話</button>
-<div id="log"></div>
+<div class="bg-shape s1"></div>
+<div class="bg-shape s2"></div>
+<div class="bg-shape s3"></div>
+<div class="bg-shape s4"></div>
+
+<main>
+  <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  <h1>按一下，<br>小幫手馬上出現！</h1>
+  <div id="status">尚未連線</div>
+  <div id="pulse" class="pulse-row" hidden>
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+  </div>
+
+  <button id="btn" class="call-btn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" id="btnIcon">
+      <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Z" stroke="#fff" stroke-width="1.8"/>
+      <path d="M19 11a7 7 0 0 1-14 0M12 18v3" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+    <span id="btnLabel">開始通話</span>
+  </button>
+
+  <div id="log" class="log"></div>
+</main>
+
 <script>
 const $ = (id) => document.getElementById(id);
 let ws, ctx, mic, node, playHead = 0, sources = [], active = false;
 
-// Demo 用：從網址帶 elderId，例如 ?elderId=demo-plumber 或 ?elderId=demo-teacher
-// DEV_NO_DB=1 模式下，這兩個 id 會對到 profile.ts 裡的 DEMO_PROFILES 假資料
 const elderId = new URLSearchParams(location.search).get('elderId') || '';
 if (elderId) {
   $('status').textContent = `尚未連線（長輩：${elderId}）`;
 }
+
+const MIC_ICON = `<path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Z" stroke="#fff" stroke-width="1.8"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>`;
+const HANGUP_ICON = `<path d="M3.5 13c5.5-5 11.5-5 17 0l-2.6 2.9a1.5 1.5 0 0 1-1.9.2l-1.6-1.1a1.5 1.5 0 0 0-1.7.05 6.5 6.5 0 0 1-3.4 0 1.5 1.5 0 0 0-1.7-.05l-1.6 1.1a1.5 1.5 0 0 1-1.9-.2L3.5 13Z" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/>`;
 
 const workletSrc = `
 class Cap extends AudioWorkletProcessor {
@@ -38,7 +121,7 @@ class Cap extends AudioWorkletProcessor {
     while(this.pos < ch.length){ out.push(ch[Math.floor(this.pos)]); this.pos += this.ratio; }
     this.pos -= ch.length;
     this.buf.push(...out);
-    if(this.buf.length >= 1600){           // 約 100ms
+    if(this.buf.length >= 1600){
       const pcm = new Int16Array(this.buf.length);
       for(let i=0;i<pcm.length;i++){ const s=Math.max(-1,Math.min(1,this.buf[i])); pcm[i]=s<0?s*0x8000:s*0x7fff; }
       this.port.postMessage(pcm.buffer, [pcm.buffer]); this.buf=[];
@@ -48,13 +131,22 @@ class Cap extends AudioWorkletProcessor {
 }
 registerProcessor('cap', Cap);`;
 
+function cleanTranscript(text){
+  return text
+    .replace(/<[^>]*>/g, '')
+    .replace(/\{[^}]*\}/g, '')
+    .replace(/\s{2,}/g, ' ');
+}
+
 function line(role, text){
+  const cleaned = cleanTranscript(text);
+  if(!cleaned) return;
   const box = $('log'); let last = box.lastElementChild;
   if(!last || last.dataset.role !== role){
     last = document.createElement('div'); last.dataset.role = role; last.className = role;
     last.textContent = (role==='elder'?'👵 ':'🤖 '); box.appendChild(last);
   }
-  last.textContent += text;
+  last.textContent += cleaned;
 }
 
 function playPcm24k(buf){
@@ -87,15 +179,25 @@ async function start(){
   };
   ws.onclose = () => stop(false);
   node.port.onmessage = (e) => { if(ws.readyState===1) ws.send(e.data); };
-  active = true; $('btn').textContent='結束通話'; $('btn').className='on'; $('status').textContent='連線中…';
+
+  active = true;
+  $('btnLabel').textContent='結束通話';
+  $('btn').className='call-btn on';
+  $('btnIcon').innerHTML = HANGUP_ICON;
+  $('status').textContent='連線中…';
+  $('pulse').hidden = false;
 }
 function stop(notify=true){
   if(!active) return; active = false;
   if(notify && ws?.readyState===1) ws.send(JSON.stringify({type:'end'}));
   ws?.close(); mic?.getTracks().forEach(t=>t.stop()); stopPlayback(); ctx?.close();
-  $('btn').textContent='開始通話'; $('btn').className=''; $('status').textContent='已結束';
+  $('btnLabel').textContent='開始通話';
+  $('btn').className='call-btn';
+  $('btnIcon').innerHTML = MIC_ICON;
+  $('status').textContent='已結束';
+  $('pulse').hidden = true;
 }
-$('btn').onclick = () => active ? stop() : start().catch(err => { $('status').textContent='無法啟動：'+err.message; });
+$('btn').onclick = () => active ? stop() : start().catch(err => { $('status').textContent='無法啟動：'+err.message; $('pulse').hidden = true; });
 </script>
 </body>
 </html>

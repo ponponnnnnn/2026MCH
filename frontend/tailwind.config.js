@@ -4,31 +4,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        paper: "#FAF9F4",
-        ink: "#262922",
-        pine: {
-          50: "#EEF3ED",
-          100: "#D7E3D4",
-          300: "#93B38B",
-          500: "#4B7A45",
-          700: "#33552F",
-          900: "#1E331B",
-        },
-        amber: {
-          50: "#FBF2E3",
-          300: "#E7B463",
-          500: "#C98A2E",
-          700: "#8C5F1E",
-        },
-        brick: {
-          50: "#FAEEEB",
-          300: "#DE9280",
-          500: "#B54B3A",
-          700: "#7E3426",
-        },
+        paper: "#FAFBFC",
+        ink: "#202124",
+        "ink-soft": "#5F6368",
+        blue: { 50: "#E8F0FE", 500: "#4285F4", 700: "#1A56C4" },
+        red: { 50: "#FCE8E6", 500: "#EA4335", 700: "#B0281E" },
+        yellow: { 50: "#FEF7E0", 500: "#FBBC05", 700: "#B88400" },
+        green: { 50: "#E6F4EA", 500: "#34A853", 700: "#1E7E37" },
       },
       fontFamily: {
         ui: [
+          "'Noto Sans TC'",
           "'PingFang TC'",
           "'Microsoft JhengHei'",
           "system-ui",

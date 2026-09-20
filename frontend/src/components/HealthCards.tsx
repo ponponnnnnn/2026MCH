@@ -3,6 +3,9 @@ import { HEALTH_TYPE_LABEL } from "../types";
 
 const CATEGORY_ORDER: HealthType[] = ["medication", "sleep", "meal", "pain", "mood"];
 
+// 每張卡片輪流用一個 Google 品牌色當頂部色條，呼應長輩端的四色視覺語言
+const ACCENT_CYCLE = ["bg-blue-500", "bg-red-500", "bg-yellow-500", "bg-green-500", "bg-blue-500"];
+
 function latestByType(logs: HealthLog[]): Partial<Record<HealthType, HealthLog>> {
   const result: Partial<Record<HealthType, HealthLog>> = {};
   for (const log of logs) {
@@ -17,19 +20,22 @@ export function HealthCards({ logs }: { logs: HealthLog[] }) {
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      {CATEGORY_ORDER.map((type) => {
+      {CATEGORY_ORDER.map((type, i) => {
         const log = latest[type];
         return (
-          <div key={type} className="border border-ink/10 bg-white px-4 py-3">
-            <p className="text-sm text-ink/50">{HEALTH_TYPE_LABEL[type]}</p>
-            {log ? (
-              <>
-                <p className="mt-1 text-lg text-ink">{log.value}</p>
-                {log.note && <p className="mt-0.5 text-sm text-ink/50">{log.note}</p>}
-              </>
-            ) : (
-              <p className="mt-1 text-lg text-ink/30">今天還沒聊到</p>
-            )}
+          <div key={type} className="overflow-hidden rounded-2xl bg-white shadow-sm">
+            <div className={`h-1.5 ${ACCENT_CYCLE[i]}`} />
+            <div className="px-4 py-3">
+              <p className="text-sm text-ink-soft">{HEALTH_TYPE_LABEL[type]}</p>
+              {log ? (
+                <>
+                  <p className="mt-1 text-lg font-bold text-ink">{log.value}</p>
+                  {log.note && <p className="mt-0.5 text-sm text-ink-soft">{log.note}</p>}
+                </>
+              ) : (
+                <p className="mt-1 text-lg text-ink-soft/40">今天還沒聊到</p>
+              )}
+            </div>
           </div>
         );
       })}

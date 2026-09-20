@@ -5,3 +5,17 @@
 body {
   @apply bg-paper text-ink font-ui;
 }
+
+/* 裝飾性幾何背景，跟長輩端同一套視覺語言：低透明度、模糊，不干擾資料閱讀 */
+.bg-shape {
+  position: fixed;
+  border-radius: 9999px;
+  filter: blur(60px);
+  opacity: 0.1;
+  pointer-events: none;
+  z-index: 0;
+}
+.bg-shape.s1 { width: 380px; height: 380px; background: #4285F4; top: -140px; left: -120px; }
+.bg-shape.s2 { width: 280px; height: 280px; background: #FBBC05; top: 20px; right: -100px; }
+.bg-shape.s3 { width: 320px; height: 320px; background: #34A853; bottom: -120px; left: -90px; }
+.bg-shape.s4 { width: 240px; height: 240px; background: #EA4335; bottom: 80px; right: -80px; }

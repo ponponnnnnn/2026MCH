@@ -2,6 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { config } from "./config.js";
 import { elderRef, taipeiDate, taipeiDayStart, Timestamp } from "./firestore.js";
 import { notifyFamily } from "./notify.js";
+import { generateReportPdf } from "./pdfReport.js";
 
 const ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
 
@@ -34,12 +35,11 @@ const reportSchema = {
 };
 
 const OVERALL_LABEL = { normal: "正常", watch: "需留意", alert: "需立即關心" } as const;
-// email 客戶端對現代 CSS 支援參差不齊，色票用最保守的寫法（inline hex），
-// 三色跟前端儀表板的 pine/amber/brick 對齊，維持同一套視覺語言
+// 跟長輩端 index.html、家屬儀表板同一套 Google 品牌色，維持三個介面視覺語言一致
 const OVERALL_COLOR = {
-  normal: { bg: "#EEF3ED", text: "#33552F", border: "#4B7A45" },
-  watch: { bg: "#FBF2E3", text: "#8C5F1E", border: "#C98A2E" },
-  alert: { bg: "#FAEEEB", text: "#7E3426", border: "#B54B3A" },
+  normal: { bg: "#E6F4EA", text: "#1E7E37", border: "#34A853" },
+  watch: { bg: "#FEF7E0", text: "#B88400", border: "#FBBC05" },
+  alert: { bg: "#FCE8E6", text: "#B0281E", border: "#EA4335" },
 } as const;
 
 const hhmm = (ts: Timestamp) =>
@@ -72,7 +72,7 @@ async function generateContentWithRetry(
   throw lastErr;
 }
 
-/** 純文字版本（既有格式，當作 HTML 顯示不出來時的備援，也是 Firestore dailyReports.text 存的內容） */
+/** 純文字版本（備援，也是 Firestore dailyReports.text 存的內容） */
 function buildPlainText(
   elderName: string,
   dateStr: string,
@@ -94,14 +94,15 @@ function buildPlainText(
     ...(report.summary ? [`📝 ${report.summary}`] : []),
     ...(report.followUps.length ? [`👉 建議：${report.followUps.join("；")}`] : []),
     ...(config.dashboardUrl ? [`🔗 詳細儀表板：${config.dashboardUrl}`] : []),
+    `📎 本信附上完整 PDF 報告`,
   ];
   return lines.join("\n");
 }
 
 /**
- * HTML 版本：表格排版是 email HTML 的慣例做法（不是偷懶），因為 Outlook 桌面版
- * 的排版引擎不支援 flexbox/grid，table 是少數所有主流信箱都吃的排版方式。
- * 所有樣式用 inline style，不用 <style> 區塊（部分信箱會整段吃掉 <style>）。
+ * HTML 版本：跟長輩端 index.html、家屬儀表板同一套 Google 四色視覺語言
+ * （品牌圓點、藍/紅/黃/綠、Noto Sans TC 字體）。排版用 table + inline style，
+ * 這是 Email HTML 的業界慣例寫法，因為 Outlook 桌面版不支援 flexbox/grid。
  */
 function buildHtml(
   elderName: string,
@@ -113,15 +114,15 @@ function buildHtml(
   const color = OVERALL_COLOR[report.overall];
   const metricRow = (label: string, value: string) => `
     <tr>
-      <td style="padding:10px 16px;border-bottom:1px solid #EDEBE1;color:#8A8D82;font-size:13px;width:88px;vertical-align:top;">${label}</td>
-      <td style="padding:10px 16px;border-bottom:1px solid #EDEBE1;color:#262922;font-size:14px;">${value}</td>
+      <td style="padding:10px 16px;border-bottom:1px solid #EEF1F5;color:#5F6368;font-size:13px;width:88px;vertical-align:top;">${label}</td>
+      <td style="padding:10px 16px;border-bottom:1px solid #EEF1F5;color:#202124;font-size:14px;">${value}</td>
     </tr>`;
 
   const eventsBlock = report.events.length
     ? `
     <tr><td style="padding:16px 24px 0;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FAEEEB;border-left:4px solid #B54B3A;">
-        <tr><td style="padding:12px 16px;color:#7E3426;font-size:13px;">⚠ ${report.events.join("；")}</td></tr>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FCE8E6;border-left:4px solid #EA4335;">
+        <tr><td style="padding:12px 16px;color:#B0281E;font-size:13px;">⚠ ${report.events.join("；")}</td></tr>
       </table>
     </td></tr>`
     : "";
@@ -129,8 +130,8 @@ function buildHtml(
   const followUpsBlock = report.followUps.length
     ? `
     <tr><td style="padding:16px 24px 0;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EEF3ED;border-left:4px solid #4B7A45;">
-        <tr><td style="padding:12px 16px;color:#33552F;font-size:13px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#E6F4EA;border-left:4px solid #34A853;">
+        <tr><td style="padding:12px 16px;color:#1E7E37;font-size:13px;">
           建議關心：${report.followUps.join("；")}
         </td></tr>
       </table>
@@ -140,28 +141,37 @@ function buildHtml(
   const dashboardButton = config.dashboardUrl
     ? `
     <tr><td style="padding:24px 24px 0;text-align:center;">
-      <a href="${config.dashboardUrl}" style="display:inline-block;padding:10px 24px;background:#33552F;color:#ffffff;text-decoration:none;font-size:14px;border-radius:4px;">
+      <a href="${config.dashboardUrl}" style="display:inline-block;padding:10px 24px;background:#4285F4;color:#ffffff;text-decoration:none;font-size:14px;border-radius:6px;">
         查看完整儀表板
       </a>
     </td></tr>`
     : "";
 
   return `
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FAF9F4;padding:24px 0;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FAFBFC;padding:24px 0;">
   <tr><td align="center">
-    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;font-family:'PingFang TC','Microsoft JhengHei',Arial,sans-serif;">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;font-family:'Noto Sans TC','PingFang TC','Microsoft JhengHei',Arial,sans-serif;">
 
-      <tr><td style="padding:24px 24px 8px;">
-        <p style="margin:0;color:#8A8D82;font-size:13px;">長照小幫手・今日狀況報告</p>
+      <tr><td style="padding:24px 24px 4px;">
         <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-          <td style="padding-top:4px;font-size:22px;color:#262922;font-weight:bold;">${elderName}</td>
+          <td style="padding:0 3px 0 0;"><div style="width:10px;height:10px;border-radius:50%;background:#4285F4;"></div></td>
+          <td style="padding:0 3px 0 0;"><div style="width:10px;height:10px;border-radius:50%;background:#EA4335;"></div></td>
+          <td style="padding:0 3px 0 0;"><div style="width:10px;height:10px;border-radius:50%;background:#FBBC05;"></div></td>
+          <td style="padding:0 8px 0 0;"><div style="width:10px;height:10px;border-radius:50%;background:#34A853;"></div></td>
+          <td style="color:#5F6368;font-size:13px;">安心快報・今日狀況報告</td>
+        </tr></table>
+      </td></tr>
+
+      <tr><td style="padding:8px 24px 0;">
+        <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+          <td style="padding-top:4px;font-size:22px;color:#202124;font-weight:900;">${elderName}</td>
           <td style="padding-left:12px;padding-top:4px;">
-            <span style="display:inline-block;padding:4px 12px;background:${color.bg};color:${color.text};border:1px solid ${color.border};font-size:13px;border-radius:4px;">
+            <span style="display:inline-block;padding:4px 12px;background:${color.bg};color:${color.text};border:1px solid ${color.border};font-size:13px;border-radius:12px;">
               ${OVERALL_LABEL[report.overall]}
             </span>
           </td>
         </tr></table>
-        <p style="margin:4px 0 0;color:#8A8D82;font-size:12px;">${dateStr}｜共互動 ${sessionCount} 次、約 ${minutes} 分鐘</p>
+        <p style="margin:4px 0 0;color:#5F6368;font-size:12px;">${dateStr}｜共互動 ${sessionCount} 次、約 ${minutes} 分鐘</p>
       </td></tr>
 
       <tr><td style="padding:8px 24px 0;">
@@ -176,9 +186,14 @@ function buildHtml(
 
       ${eventsBlock}
 
-      ${report.summary ? `<tr><td style="padding:16px 24px 0;color:#262922;font-size:14px;line-height:1.6;">${report.summary}</td></tr>` : ""}
+      ${report.summary ? `<tr><td style="padding:16px 24px 0;color:#202124;font-size:14px;line-height:1.6;">${report.summary}</td></tr>` : ""}
 
       ${followUpsBlock}
+
+      <tr><td style="padding:16px 24px 0;text-align:center;">
+        <p style="margin:0;color:#5F6368;font-size:12px;">📎 完整報告 PDF 已附加在本封信件</p>
+      </td></tr>
+
       ${dashboardButton}
 
       <tr><td style="padding:24px 24px 20px;text-align:center;">
@@ -245,12 +260,28 @@ ${JSON.stringify(material)}`,
 
   const text = buildPlainText(elderName, dateStr, report, sessions.length, minutes);
   const html = buildHtml(elderName, dateStr, report, sessions.length, minutes);
+  const pdfBuffer = await generateReportPdf({
+    elderName,
+    dateStr,
+    overall: report.overall,
+    medication: report.medication,
+    sleep: report.sleep,
+    mood: report.mood,
+    meals: report.meals,
+    pain: report.pain,
+    events: report.events,
+    summary: report.summary,
+    followUps: report.followUps,
+    sessionCount: sessions.length,
+    minutes,
+  });
 
   const sent = await notifyFamily(
     elderId,
     `【長照小幫手】${elderName} ${dateStr} 今日狀況報告｜${OVERALL_LABEL[report.overall]}`,
     text,
     html,
+    [{ filename: `${elderName}-${dateStr}-報告.pdf`, content: pdfBuffer, contentType: "application/pdf" }],
   );
   await elder.collection("dailyReports").doc(dateStr).set({
     generatedAt: Timestamp.now(),
