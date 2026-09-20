@@ -9,6 +9,7 @@ import '../../core/config.dart';
 import '../../core/incoming_call.dart';
 import '../../core/providers.dart';
 import '../../core/push_registration.dart';
+import '../../core/theme.dart';
 import '../../firebase_options.dart';
 
 class ElderScreen extends ConsumerStatefulWidget {
@@ -104,16 +105,25 @@ class _ElderScreenState extends ConsumerState<ElderScreen> {
   Widget build(BuildContext context) {
     if (_incoming != null) return _buildIncomingCallScreen(_incoming!);
 
+    // 跟 web 版（backend/public/index.html）同一套配色：待機／可以撥出＝綠、
+    // 聽長輩說話＝藍、小幫手說話中＝黃，連線中維持中性灰。
     final (label, color) = switch (_state) {
       CallState.connecting => ('連線中…', Colors.grey),
-      CallState.listening => ('我在聽，請說話', const Color(0xFF2E7D6B)),
-      CallState.speaking => ('小幫手說話中', const Color(0xFFE07A2F)),
-      _ => ('跟小幫手聊聊', const Color(0xFF2E7D6B)),
+      CallState.listening => ('我在聽，請說話', AppColors.blue500),
+      CallState.speaking => ('小幫手說話中', AppColors.yellow700),
+      _ => ('跟小幫手聊聊', AppColors.green500),
     };
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${AppConfig.elderName}，您好', style: const TextStyle(fontSize: 24)),
+        title: Row(mainAxisSize: MainAxisSize.min, children: [
+          const BrandMark(),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text('${AppConfig.elderName}，您好',
+                style: const TextStyle(fontSize: 22), overflow: TextOverflow.ellipsis),
+          ),
+        ]),
         actions: [
           if (!_inCall)
             IconButton(
@@ -124,75 +134,85 @@ class _ElderScreenState extends ConsumerState<ElderScreen> {
             ),
         ],
       ),
-      body: SafeArea(
-        child: Column(children: [
-          const Spacer(flex: 2),
-          if (_inCall)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-              child: Row(children: [
-                const Icon(Icons.mic),
-                const SizedBox(width: 8),
-                Expanded(
-                    child: LinearProgressIndicator(
-                        value: (_level * 4).clamp(0.0, 1.0), minHeight: 12)),
-                const SizedBox(width: 8),
-                Text(_level.toStringAsFixed(3)),
-              ]),
-            ),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(_error!,
-                  style: const TextStyle(fontSize: 22, color: Colors.red),
-                  textAlign: TextAlign.center),
-            ),
-          Expanded(
-            flex: 4,
-            child: Center(
-              child: GestureDetector(
-                onTap: _state == CallState.connecting
-                    ? null
-                    : (_inCall ? _client.stop : _start),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: _state == CallState.speaking ? 280 : 250,
-                  height: _state == CallState.speaking ? 280 : 250,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                          color: color.withValues(alpha: 0.45),
-                          blurRadius: _inCall ? 40 : 12,
-                          spreadRadius: _inCall ? 12 : 0),
-                    ],
+      body: Stack(children: [
+        const BrandBackground(),
+        SafeArea(
+          child: Column(children: [
+            const Spacer(flex: 2),
+            if (_inCall) ...[
+              const CallPulse(),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                child: Row(children: [
+                  const Icon(Icons.mic),
+                  const SizedBox(width: 8),
+                  Expanded(
+                      child: LinearProgressIndicator(
+                          value: (_level * 4).clamp(0.0, 1.0), minHeight: 12)),
+                  const SizedBox(width: 8),
+                  Text(_level.toStringAsFixed(3)),
+                ]),
+              ),
+            ],
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(_error!,
+                    style: const TextStyle(fontSize: 22, color: AppColors.red700),
+                    textAlign: TextAlign.center),
+              ),
+            Expanded(
+              flex: 4,
+              child: Center(
+                child: GestureDetector(
+                  onTap: _state == CallState.connecting
+                      ? null
+                      : (_inCall ? _client.stop : _start),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: _state == CallState.speaking ? 280 : 250,
+                    height: _state == CallState.speaking ? 280 : 250,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [color, Color.lerp(color, Colors.black, 0.18)!],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                            color: color.withValues(alpha: 0.45),
+                            blurRadius: _inCall ? 40 : 12,
+                            spreadRadius: _inCall ? 12 : 0),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.all(20),
+                    child: Text(label,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold)),
                   ),
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.all(20),
-                  child: Text(label,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold)),
                 ),
               ),
             ),
-          ),
-          if (_inCall)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.red.shade700,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            if (_inCall)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.red500,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  ),
+                  onPressed: _client.stop,
+                  icon: const Icon(Icons.call_end, size: 32),
+                  label: const Text('結束通話', style: TextStyle(fontSize: 26)),
                 ),
-                onPressed: _client.stop,
-                icon: const Icon(Icons.call_end, size: 32),
-                label: const Text('結束通話', style: TextStyle(fontSize: 26)),
               ),
-            ),
-        ]),
-      ),
+          ]),
+        ),
+      ]),
     );
   }
 
@@ -200,7 +220,7 @@ class _ElderScreenState extends ConsumerState<ElderScreen> {
   /// 也就不會有「接聽後跟原本畫面沒接好」這種殘留舊畫面擋住觸控的問題。
   Widget _buildIncomingCallScreen(IncomingCallPayload payload) {
     return Scaffold(
-      backgroundColor: const Color(0xFF2E7D6B),
+      backgroundColor: AppColors.blue500,
       body: SafeArea(
         child: Column(children: [
           const Spacer(flex: 2),
@@ -214,13 +234,13 @@ class _ElderScreenState extends ConsumerState<ElderScreen> {
             child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
               _incomingActionButton(
                 onPressed: _declineIncoming,
-                color: Colors.red.shade700,
+                color: AppColors.red500,
                 icon: Icons.call_end,
                 label: '拒接',
               ),
               _incomingActionButton(
                 onPressed: _acceptIncoming,
-                color: const Color(0xFFE07A2F),
+                color: AppColors.green500,
                 icon: Icons.call,
                 label: '接聽',
               ),

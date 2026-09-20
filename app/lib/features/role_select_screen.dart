@@ -31,13 +31,22 @@ class RoleSelectScreen extends ConsumerWidget {
         );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('長照小幫手')),
-      body: SafeArea(
-        child: Column(children: [
-          big('我是長輩', Icons.elderly, Role.elder, AppColors.yellow700),
-          big('我是家屬', Icons.family_restroom, Role.family, AppColors.blue500),
+      appBar: AppBar(
+        title: Row(mainAxisSize: MainAxisSize.min, children: const [
+          BrandMark(),
+          SizedBox(width: 10),
+          Text('長照小幫手'),
         ]),
       ),
+      body: Stack(children: [
+        const BrandBackground(),
+        SafeArea(
+          child: Column(children: [
+            big('我是長輩', Icons.elderly, Role.elder, AppColors.yellow700),
+            big('我是家屬', Icons.family_restroom, Role.family, AppColors.blue500),
+          ]),
+        ),
+      ]),
     );
   }
 }

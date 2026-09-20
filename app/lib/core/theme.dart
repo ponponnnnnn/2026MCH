@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 /// 與 web 版家屬儀表板一致的 Google 四色視覺語言。
@@ -95,6 +97,90 @@ class AccentCard extends StatelessWidget {
           Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 14), child: child),
         ]),
       );
+}
+
+/// 裝飾性四色模糊圓形背景，對應 web 版（backend/public/index.html）的 .bg-shape。
+/// 純裝飾、蓋在畫面最底層，不吃點擊事件。
+class BrandBackground extends StatelessWidget {
+  const BrandBackground({super.key});
+
+  static const _shapes = [
+    (AppColors.blue500, -60.0, -50.0, 170.0),
+    (AppColors.yellow500, -45.0, null, 130.0),
+    (AppColors.green500, null, -40.0, 150.0),
+    (AppColors.red500, null, null, 110.0),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Stack(children: [
+        _shape(_shapes[0].$1, top: _shapes[0].$2, left: _shapes[0].$3, size: _shapes[0].$4),
+        _shape(_shapes[1].$1, top: 20, right: -45, size: _shapes[1].$4),
+        _shape(_shapes[2].$1, bottom: -50, left: -40, size: _shapes[2].$4),
+        _shape(_shapes[3].$1, bottom: 30, right: -35, size: _shapes[3].$4),
+      ]),
+    );
+  }
+
+  Widget _shape(Color color, {double? top, double? bottom, double? left, double? right, required double size}) {
+    return Positioned(
+      top: top,
+      bottom: bottom,
+      left: left,
+      right: right,
+      child: ImageFiltered(
+        imageFilter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.14), shape: BoxShape.circle),
+        ),
+      ),
+    );
+  }
+}
+
+/// 通話中的四色跳動指示，對應 web 版的 .pulse-row（取代單調的純文字狀態）。
+class CallPulse extends StatefulWidget {
+  const CallPulse({super.key});
+
+  @override
+  State<CallPulse> createState() => _CallPulseState();
+}
+
+class _CallPulseState extends State<CallPulse> with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100))..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const colors = [AppColors.blue500, AppColors.red500, AppColors.yellow500, AppColors.green500];
+    return SizedBox(
+      height: 34,
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        for (final (i, c) in colors.indexed)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 5),
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (_, child) {
+                // 每個點延遲一點點開始跳，跟 web 版 animation-delay 0/.12/.24/.36s 對應
+                final t = (_controller.value - i * 0.11) % 1.0;
+                final lift = t < 0 ? 0.0 : (t < 0.4 ? (1 - (t / 0.4 - 1) * (t / 0.4 - 1)) : 0.0);
+                return Transform.translate(offset: Offset(0, -14 * lift), child: child);
+              },
+              child: Container(width: 14, height: 14, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+            ),
+          ),
+      ]),
+    );
+  }
 }
 
 /// 左側色條的訊息區塊（web 版警報與建議關心的樣式）。
