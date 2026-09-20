@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -23,6 +25,11 @@ class _ElderScreenState extends ConsumerState<ElderScreen> {
   double _level = 0;
   DateTime _levelShownAt = DateTime.fromMillisecondsSinceEpoch(0);
 
+  // 來電中（響鈴，等長輩接聽／拒接／逾時）；45 秒跟後端 push.ts 的 FCM TTL 對齊。
+  static const _ringSeconds = 45;
+  IncomingCallPayload? _incoming;
+  Timer? _incomingTimer;
+
   @override
   void initState() {
     super.initState();
@@ -46,8 +53,13 @@ class _ElderScreenState extends ConsumerState<ElderScreen> {
     // 只有在 Firebase 已設定時才碰任何 Firebase API（FCM 推播、來電）
     if (DefaultFirebaseOptions.isConfigured) {
       ensureDeviceRegistered();
-      startIncomingCallListening(onAccept: (attemptId) {
-        if (mounted) _start(attemptId: attemptId);
+      startIncomingCallListening(onIncoming: (payload) {
+        if (!mounted || _inCall) return; // 通話中收到的來電（理論上不會發生）直接忽略
+        _incomingTimer?.cancel();
+        setState(() => _incoming = payload);
+        _incomingTimer = Timer(const Duration(seconds: _ringSeconds), () {
+          if (mounted) setState(() => _incoming = null); // 逾時：後端自行判定未接，App 端不用回報
+        });
       });
     }
   }
@@ -55,8 +67,22 @@ class _ElderScreenState extends ConsumerState<ElderScreen> {
   @override
   void dispose() {
     WakelockPlus.disable();
+    _incomingTimer?.cancel();
     _client.dispose();
     super.dispose();
+  }
+
+  void _acceptIncoming() {
+    final payload = _incoming;
+    if (payload == null) return;
+    _incomingTimer?.cancel();
+    setState(() => _incoming = null);
+    _start(attemptId: payload.attemptId);
+  }
+
+  void _declineIncoming() {
+    _incomingTimer?.cancel();
+    setState(() => _incoming = null); // 拒接：後端自行判定未接，App 端不用回報
   }
 
   bool get _inCall =>
@@ -76,6 +102,8 @@ class _ElderScreenState extends ConsumerState<ElderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_incoming != null) return _buildIncomingCallScreen(_incoming!);
+
     final (label, color) = switch (_state) {
       CallState.connecting => ('連線中…', Colors.grey),
       CallState.listening => ('我在聽，請說話', const Color(0xFF2E7D6B)),
@@ -166,5 +194,60 @@ class _ElderScreenState extends ConsumerState<ElderScreen> {
         ]),
       ),
     );
+  }
+
+  /// 來電中畫面：接聽／拒接都在同一個 Flutter Scaffold 裡完成，不開額外的系統畫面，
+  /// 也就不會有「接聽後跟原本畫面沒接好」這種殘留舊畫面擋住觸控的問題。
+  Widget _buildIncomingCallScreen(IncomingCallPayload payload) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF2E7D6B),
+      body: SafeArea(
+        child: Column(children: [
+          const Spacer(flex: 2),
+          const Icon(Icons.phone_in_talk, size: 72, color: Colors.white),
+          const SizedBox(height: 16),
+          Text('${payload.callerName}來電',
+              style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+          const Spacer(flex: 3),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+              _incomingActionButton(
+                onPressed: _declineIncoming,
+                color: Colors.red.shade700,
+                icon: Icons.call_end,
+                label: '拒接',
+              ),
+              _incomingActionButton(
+                onPressed: _acceptIncoming,
+                color: const Color(0xFFE07A2F),
+                icon: Icons.call,
+                label: '接聽',
+              ),
+            ]),
+          ),
+          const SizedBox(height: 32),
+        ]),
+      ),
+    );
+  }
+
+  Widget _incomingActionButton({
+    required VoidCallback onPressed,
+    required Color color,
+    required IconData icon,
+    required String label,
+  }) {
+    return Column(children: [
+      IconButton(
+        onPressed: onPressed,
+        iconSize: 72,
+        padding: const EdgeInsets.all(20),
+        style: IconButton.styleFrom(backgroundColor: color, shape: const CircleBorder()),
+        icon: Icon(icon, color: Colors.white, size: 36),
+      ),
+      const SizedBox(height: 8),
+      Text(label, style: const TextStyle(color: Colors.white, fontSize: 22)),
+    ]);
   }
 }
